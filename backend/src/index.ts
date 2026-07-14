@@ -13,7 +13,7 @@ import { typeDefs } from './schema.js';
 import { resolvers } from './resolvers.js';
 import { connectKafka, consumer } from './kafka.js';
 import { pubsub, EVENT_TRACKED } from './pubsub.js';
-import { recentEvents } from './store.js';
+import { initDb, insertEvents } from './db.js';
 import type { AnalyticsEvent } from './types.js';
 
 const schema = makeExecutableSchema({ typeDefs, resolvers });
@@ -47,15 +47,32 @@ app.use('/graphql', cors(), bodyParser.json(), expressMiddleware(server));
 const PORT = Number(process.env.PORT) || 4000;
 
 async function main(): Promise<void> {
+  await initDb();
   await connectKafka();
 
+  // eachBatch gives natural write batching: one multi-row INSERT per Kafka
+  // batch, and offsets are only committed after the batch handler resolves —
+  // so a crash before the INSERT lands means redelivery, not data loss.
   await consumer.run({
-    eachMessage: async ({ message }) => {
-      if (!message.value) return;
-      const event = JSON.parse(message.value.toString()) as AnalyticsEvent;
-      recentEvents.unshift(event);
-      if (recentEvents.length > 50) recentEvents.pop();
-      pubsub.publish(EVENT_TRACKED, { eventTracked: event });
+    eachBatch: async ({ batch, heartbeat }) => {
+      const events: AnalyticsEvent[] = [];
+      for (const message of batch.messages) {
+        if (!message.value) continue;
+        try {
+          events.push(JSON.parse(message.value.toString()) as AnalyticsEvent);
+        } catch {
+          console.error(`Skipping unparseable message at offset ${message.offset}`);
+        }
+      }
+
+      if (events.length > 0) {
+        await insertEvents(events);
+        for (const event of events) {
+          pubsub.publish(EVENT_TRACKED, { eventTracked: event });
+        }
+      }
+
+      await heartbeat();
     },
   });
 

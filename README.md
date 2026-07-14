@@ -3,15 +3,16 @@
 A minimal example of the "third-party analytics service" pattern: other
 services dispatch events to a GraphQL mutation, which writes them onto a
 Kafka topic and returns immediately. A consumer in the same process reads
-the topic asynchronously, populating an in-memory store and pushing
-real-time updates to GraphQL subscribers — demonstrating how Kafka decouples
-ingestion from processing behind the endpoint.
+the topic asynchronously, persisting events to Postgres in batches and
+pushing real-time updates to GraphQL subscribers — demonstrating how Kafka
+decouples ingestion from processing behind the endpoint.
 
 ## Stack
 
 - **Kafka** — single-broker, KRaft mode (no Zookeeper), `apache/kafka` image
+- **Postgres 16** — persistence layer for consumed events
 - **Apollo Server 5** (Express via `@as-integrations/express4` + `graphql-ws` for subscriptions), written in **TypeScript**
-- **kafkajs** for the producer/consumer
+- **kafkajs** for the producer/consumer, **pg** for Postgres
 - **yarn** as the package manager
 
 ## Run it
@@ -22,6 +23,7 @@ docker compose up --build
 
 - GraphQL endpoint: http://localhost:4000/graphql
 - Kafka broker (from host): localhost:9092
+- Postgres (from host): localhost:5432, user/password/db all `analytics`
 
 ## Local development (backend only)
 
@@ -86,8 +88,11 @@ any GraphQL client that supports `graphql-ws` for the subscription.
 - The `trackEvent` mutation only waits for the Kafka `producer.send`
   acknowledgment, not for processing — this is the same shape as an
   ingestion endpoint in front of a real analytics pipeline.
-- `recentEvents` is in-memory and resets when the backend container
-  restarts; swap `store.ts` for a real database/warehouse write in the
-  consumer loop to persist it.
+- Consumed events are persisted to Postgres (`events` table) with one
+  multi-row `INSERT` per Kafka batch and `ON CONFLICT (id) DO NOTHING`
+  dedup, so Kafka's at-least-once redelivery is effectively exactly-once
+  in the database. Events survive backend restarts.
+- Both the client-reported time (`occurred_at`) and the server ingestion
+  time (`received_at`) are stored — client clocks lie.
 - Topic `analytics-events` is auto-created on first publish (single
   partition, replication factor 1 — fine for local dev, not for production).

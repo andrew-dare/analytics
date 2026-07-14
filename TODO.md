@@ -69,8 +69,19 @@ workstream; rough order within each group is "do first → do later."
   - [ ] crypto-shredding (per-user encryption key; delete key to "erase")
 - [ ] Don't persist IP addresses (or truncate/hash at ingestion)
 - [ ] Plan EU data residency / SCCs if serving EU users
-- [ ] Replace in-memory `recentEvents` store with a real database before any
-      of the above matters (store.ts is throwaway)
+- [x] Replace in-memory `recentEvents` store with a real database before any
+      of the above matters — done: Postgres, batched idempotent inserts
+- [ ] Time-partition the `events` table when volume grows (retention =
+      dropping old partitions, not `DELETE`)
+- [ ] Migrate hot analytics queries to **ClickHouse** when Postgres
+      aggregations start hurting (the Plausible/PostHog path); keep the
+      consumer as the single write path so the swap stays contained
+- [ ] Pre-aggregate dashboard queries (rollup tables / materialized views)
+      instead of scanning raw events per page load
+- [ ] Split the Kafka consumer out of the API process into a separate
+      worker container (independent scaling, deploys don't pause ingestion)
+- [ ] Add a dead-letter topic (`analytics-events-dlq`) for unparseable /
+      uninsertable events instead of skip-and-log
 
 ## 6. Legal / paperwork (not code)
 
