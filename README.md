@@ -10,8 +10,9 @@ ingestion from processing behind the endpoint.
 ## Stack
 
 - **Kafka** — single-broker, KRaft mode (no Zookeeper), `apache/kafka` image
-- **Apollo Server 4** (Express + `graphql-ws` for subscriptions)
+- **Apollo Server 5** (Express via `@as-integrations/express4` + `graphql-ws` for subscriptions), written in **TypeScript**
 - **kafkajs** for the producer/consumer
+- **yarn** as the package manager
 
 ## Run it
 
@@ -21,6 +22,20 @@ docker compose up --build
 
 - GraphQL endpoint: http://localhost:4000/graphql
 - Kafka broker (from host): localhost:9092
+
+## Local development (backend only)
+
+```bash
+cd backend
+yarn install
+yarn dev      # tsx watch, runs src/index.ts directly, no build step
+yarn build    # compiles src/ -> dist/ with tsc
+yarn start    # runs the compiled dist/index.js
+```
+
+`yarn dev` expects Kafka reachable at `KAFKA_BROKER` (defaults to
+`kafka:19092`); run `docker compose up kafka` separately and set
+`KAFKA_BROKER=localhost:9092` if working on the backend outside Docker.
 
 ## Try it
 
@@ -72,7 +87,7 @@ any GraphQL client that supports `graphql-ws` for the subscription.
   acknowledgment, not for processing — this is the same shape as an
   ingestion endpoint in front of a real analytics pipeline.
 - `recentEvents` is in-memory and resets when the backend container
-  restarts; swap `store.js` for a real database/warehouse write in the
+  restarts; swap `store.ts` for a real database/warehouse write in the
   consumer loop to persist it.
 - Topic `analytics-events` is auto-created on first publish (single
   partition, replication factor 1 — fine for local dev, not for production).

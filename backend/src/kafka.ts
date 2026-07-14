@@ -10,7 +10,7 @@ export const producer = kafka.producer();
 export const consumer = kafka.consumer({ groupId: 'analytics-consumer-group' });
 export const TOPIC = 'analytics-events';
 
-export async function connectKafka(retries = 15, delayMs = 3000) {
+export async function connectKafka(retries = 15, delayMs = 3000): Promise<void> {
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       await producer.connect();
@@ -19,7 +19,8 @@ export async function connectKafka(retries = 15, delayMs = 3000) {
       console.log('Connected to Kafka');
       return;
     } catch (err) {
-      console.log(`Kafka not ready yet (attempt ${attempt}/${retries}): ${err.message}`);
+      const message = err instanceof Error ? err.message : String(err);
+      console.log(`Kafka not ready yet (attempt ${attempt}/${retries}): ${message}`);
       await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
   }

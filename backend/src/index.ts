@@ -3,7 +3,7 @@ import http from 'http';
 import cors from 'cors';
 import bodyParser from 'body-parser';
 import { ApolloServer } from '@apollo/server';
-import { expressMiddleware } from '@apollo/server/express4';
+import { expressMiddleware } from '@as-integrations/express4';
 import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer';
 import { makeExecutableSchema } from '@graphql-tools/schema';
 import { WebSocketServer } from 'ws';
@@ -14,6 +14,7 @@ import { resolvers } from './resolvers.js';
 import { connectKafka, consumer } from './kafka.js';
 import { pubsub, EVENT_TRACKED } from './pubsub.js';
 import { recentEvents } from './store.js';
+import type { AnalyticsEvent } from './types.js';
 
 const schema = makeExecutableSchema({ typeDefs, resolvers });
 
@@ -43,14 +44,15 @@ await server.start();
 
 app.use('/graphql', cors(), bodyParser.json(), expressMiddleware(server));
 
-const PORT = process.env.PORT || 4000;
+const PORT = Number(process.env.PORT) || 4000;
 
-async function main() {
+async function main(): Promise<void> {
   await connectKafka();
 
   await consumer.run({
     eachMessage: async ({ message }) => {
-      const event = JSON.parse(message.value.toString());
+      if (!message.value) return;
+      const event = JSON.parse(message.value.toString()) as AnalyticsEvent;
       recentEvents.unshift(event);
       if (recentEvents.length > 50) recentEvents.pop();
       pubsub.publish(EVENT_TRACKED, { eventTracked: event });
