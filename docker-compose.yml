@@ -37,6 +37,17 @@ services:
       timeout: 3s
       retries: 10
 
+  pgweb:
+    image: sosedoff/pgweb:latest
+    container_name: kafka-analytics-pgweb
+    ports:
+      - "8081:8081"
+    environment:
+      PGWEB_DATABASE_URL: postgres://analytics:analytics@postgres:5432/analytics?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   backend:
     build: ./backend
     container_name: kafka-analytics-backend

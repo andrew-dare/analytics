@@ -24,6 +24,8 @@ docker compose up --build
 - GraphQL endpoint: http://localhost:4000/graphql
 - Kafka broker (from host): localhost:9092
 - Postgres (from host): localhost:5432, user/password/db all `analytics`
+- pgweb (Postgres GUI): http://localhost:8081 — auto-connects to the
+  `analytics` database; browse the `events` table or run ad-hoc SQL
 
 ## Local development (backend only)
 
