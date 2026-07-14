@@ -1,13 +1,15 @@
 import { v4 as uuidv4 } from 'uuid';
 import { producer, TOPIC } from './kafka.js';
 import { pubsub, EVENT_TRACKED } from './pubsub.js';
-import { recentEvents } from './store.js';
+import { queryRecentEvents } from './db.js';
 import type { AnalyticsEvent, EventInput } from './types.js';
 
 export const resolvers = {
   Query: {
-    recentEvents: (_parent: unknown, { limit = 20 }: { limit?: number }): AnalyticsEvent[] =>
-      recentEvents.slice(0, limit),
+    recentEvents: (
+      _parent: unknown,
+      { limit = 20 }: { limit?: number },
+    ): Promise<AnalyticsEvent[]> => queryRecentEvents(limit),
   },
   Mutation: {
     trackEvent: async (

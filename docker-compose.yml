@@ -20,6 +20,23 @@ services:
     volumes:
       - kafka-data:/var/lib/kafka/data
 
+  postgres:
+    image: postgres:16-alpine
+    container_name: kafka-analytics-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: analytics
+      POSTGRES_PASSWORD: analytics
+      POSTGRES_DB: analytics
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U analytics -d analytics"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   backend:
     build: ./backend
     container_name: kafka-analytics-backend
@@ -27,9 +44,14 @@ services:
       - "4000:4000"
     environment:
       KAFKA_BROKER: kafka:19092
+      DATABASE_URL: postgres://analytics:analytics@postgres:5432/analytics
       PORT: 4000
     depends_on:
-      - kafka
+      kafka:
+        condition: service_started
+      postgres:
+        condition: service_healthy
 
 volumes:
   kafka-data:
+  postgres-data:
