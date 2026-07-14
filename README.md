@@ -27,6 +27,24 @@ docker compose up --build
 - pgweb (Postgres GUI): http://localhost:8081 — auto-connects to the
   `analytics` database; browse the `events` table or run ad-hoc SQL
 
+## Observability
+
+- **Grafana**: http://localhost:3001 — anonymous access, provisioned
+  "Kafka Analytics Pipeline" dashboard (consumer lag, produce/consume/insert
+  rates, GraphQL + producer/consumer latency p95, rebalances, pg pool,
+  event loop lag)
+- **Prometheus**: http://localhost:9090 — scrapes the backend and
+  kafka-exporter every 10s
+- **Redpanda Console** (Kafka GUI): http://localhost:8082 — browse topics,
+  messages, consumer groups and their lag
+- **Backend metrics**: http://localhost:4000/metrics — prom-client
+  (kafkajs instrumentation events, pg pool gauges, GraphQL operation
+  histograms, Node process defaults)
+
+The headline metric is **consumer group lag** (`kafka_consumergroup_lag`,
+exported cluster-side by kafka-exporter): growing lag means processing is
+falling behind ingestion.
+
 ## Local development (backend only)
 
 ```bash

@@ -1,0 +1,17 @@
+global:
+  scrape_interval: 10s
+  evaluation_interval: 10s
+
+scrape_configs:
+  - job_name: backend
+    static_configs:
+      - targets: ["backend:4000"]
+
+  # Cluster-side Kafka metrics: consumer group lag, topic offsets, broker info.
+  - job_name: kafka-exporter
+    static_configs:
+      - targets: ["kafka-exporter:9308"]
+
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]

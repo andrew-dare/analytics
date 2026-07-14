@@ -1,4 +1,5 @@
 import { Kafka } from 'kafkajs';
+import { consumerRebalancesTotal, consumerCrashesTotal } from './metrics.js';
 
 const kafka = new Kafka({
   clientId: 'analytics-backend',
@@ -9,6 +10,9 @@ const kafka = new Kafka({
 export const producer = kafka.producer();
 export const consumer = kafka.consumer({ groupId: 'analytics-consumer-group' });
 export const TOPIC = 'analytics-events';
+
+consumer.on(consumer.events.GROUP_JOIN, () => consumerRebalancesTotal.inc());
+consumer.on(consumer.events.CRASH, () => consumerCrashesTotal.inc());
 
 export async function connectKafka(retries = 15, delayMs = 3000): Promise<void> {
   for (let attempt = 1; attempt <= retries; attempt++) {

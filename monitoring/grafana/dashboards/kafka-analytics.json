@@ -1,0 +1,115 @@
+{
+  "title": "Kafka Analytics Pipeline",
+  "uid": "kafka-analytics",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "time": { "from": "now-30m", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Consumer group lag (most important metric)",
+      "description": "Latest offset minus committed offset for analytics-consumer-group. Growing lag = processing is falling behind ingestion.",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum by (topic) (kafka_consumergroup_lag{consumergroup=\"analytics-consumer-group\"})",
+          "legendFormat": "{{topic}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Events produced/sec (topic offset growth)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(rate(kafka_topic_partition_current_offset{topic=\"analytics-events\"}[1m]))",
+          "legendFormat": "produced/sec"
+        },
+        {
+          "expr": "rate(events_consumed_total[1m])",
+          "legendFormat": "consumed/sec"
+        },
+        {
+          "expr": "rate(events_inserted_total[1m])",
+          "legendFormat": "inserted/sec"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "GraphQL operation duration p95",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, operation) (rate(graphql_operation_duration_seconds_bucket[5m])))",
+          "legendFormat": "{{operation}}"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Producer send / consumer batch duration p95",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, rate(kafka_producer_send_duration_seconds_bucket[5m]))",
+          "legendFormat": "producer.send p95"
+        },
+        {
+          "expr": "histogram_quantile(0.95, rate(kafka_consumer_batch_duration_seconds_bucket[5m]))",
+          "legendFormat": "consumer batch p95"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Consumer rebalances & crashes (10m window)",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 16 },
+      "targets": [
+        {
+          "expr": "increase(kafka_consumer_rebalances_total[10m])",
+          "legendFormat": "rebalances"
+        },
+        {
+          "expr": "increase(kafka_consumer_crashes_total[10m])",
+          "legendFormat": "crashes"
+        },
+        {
+          "expr": "increase(events_unparseable_total[10m])",
+          "legendFormat": "unparseable events"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Postgres pool",
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 16 },
+      "targets": [
+        { "expr": "pg_pool_total_connections", "legendFormat": "total" },
+        { "expr": "pg_pool_idle_connections", "legendFormat": "idle" },
+        { "expr": "pg_pool_waiting_requests", "legendFormat": "waiting (saturation)" }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Node event loop lag p99",
+      "description": "A blocked event loop stalls both the API and the consumer (shared process).",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 16 },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        { "expr": "nodejs_eventloop_lag_p99_seconds", "legendFormat": "p99 lag" }
+      ]
+    }
+  ]
+}

@@ -37,6 +37,49 @@ services:
       timeout: 3s
       retries: 10
 
+  kafka-exporter:
+    image: danielqsj/kafka-exporter:latest
+    container_name: kafka-analytics-kafka-exporter
+    command: ["--kafka.server=kafka:19092"]
+    restart: unless-stopped
+    depends_on:
+      - kafka
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: kafka-analytics-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: kafka-analytics-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
+  kafka-console:
+    image: docker.redpanda.com/redpandadata/console:v2.7.2
+    container_name: kafka-analytics-console
+    ports:
+      - "8082:8080"
+    environment:
+      KAFKA_BROKERS: kafka:19092
+    depends_on:
+      - kafka
+
   pgweb:
     image: sosedoff/pgweb:latest
     container_name: kafka-analytics-pgweb
@@ -66,3 +109,5 @@ services:
 volumes:
   kafka-data:
   postgres-data:
+  prometheus-data:
+  grafana-data:

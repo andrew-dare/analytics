@@ -83,7 +83,26 @@ workstream; rough order within each group is "do first → do later."
 - [ ] Add a dead-letter topic (`analytics-events-dlq`) for unparseable /
       uninsertable events instead of skip-and-log
 
-## 6. Legal / paperwork (not code)
+## 6. Telemetry / observability
+
+- [x] Prometheus + Grafana + kafka-exporter in docker-compose, provisioned
+      dashboard (lag, throughput, latency p95s, rebalances, pg pool)
+- [x] Backend `/metrics` endpoint: prom-client + kafkajs instrumentation
+      events + pg pool gauges + GraphQL operation histograms
+- [x] Redpanda Console for browsing topics / consumer groups / lag
+- [ ] Alerting rules (Prometheus Alertmanager or Grafana alerts): lag
+      growing 5m, >3 rebalances/10m, API 5xx >1%, Kafka disk >80%,
+      pg pool exhausted
+- [ ] End-to-end freshness metric: `received_at` → row-visible-in-Postgres
+      delay, exported as a histogram
+- [ ] Produced-vs-inserted reconciliation counter (event loss detection
+      beyond unparseable/DLQ)
+- [ ] OpenTelemetry tracing across mutation → Kafka (trace context in
+      message headers) → consumer → INSERT
+- [ ] Broker JMX metrics via jmx-exporter when moving beyond one broker
+      (under-replicated partitions, ISR shrink/expand, request latency)
+
+## 7. Legal / paperwork (not code)
 
 > Get real legal review before launch — the below is orientation, not advice.
 

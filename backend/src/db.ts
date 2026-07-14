@@ -1,9 +1,38 @@
 import pg from 'pg';
+import client from 'prom-client';
+import { register, eventsInsertedTotal } from './metrics.js';
 import type { AnalyticsEvent } from './types.js';
 
 const pool = new pg.Pool({
   connectionString:
     process.env.DATABASE_URL || 'postgres://analytics:analytics@postgres:5432/analytics',
+});
+
+new client.Gauge({
+  name: 'pg_pool_total_connections',
+  help: 'Open connections in the pg pool',
+  registers: [register],
+  collect() {
+    this.set(pool.totalCount);
+  },
+});
+
+new client.Gauge({
+  name: 'pg_pool_idle_connections',
+  help: 'Idle connections in the pg pool',
+  registers: [register],
+  collect() {
+    this.set(pool.idleCount);
+  },
+});
+
+new client.Gauge({
+  name: 'pg_pool_waiting_requests',
+  help: 'Queries queued waiting for a connection — sustained non-zero means pool saturation',
+  registers: [register],
+  collect() {
+    this.set(pool.waitingCount);
+  },
 });
 
 export async function initDb(retries = 15, delayMs = 3000): Promise<void> {
@@ -49,12 +78,13 @@ export async function insertEvents(events: AnalyticsEvent[]): Promise<void> {
   // Kafka delivers at-least-once: after a consumer crash the same messages
   // can be redelivered. Deduping on the event id makes replays a no-op, so
   // persistence is effectively exactly-once.
-  await pool.query(
+  const result = await pool.query(
     `INSERT INTO events (id, service, event_type, payload, occurred_at)
      VALUES ${rows.join(', ')}
      ON CONFLICT (id) DO NOTHING`,
     values,
   );
+  eventsInsertedTotal.inc(result.rowCount ?? 0);
 }
 
 export async function queryRecentEvents(limit: number): Promise<AnalyticsEvent[]> {
