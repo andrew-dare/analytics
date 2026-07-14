@@ -1,18 +1,35 @@
 # kafka-analytics
 
-A minimal example of the "third-party analytics service" pattern: other
-services dispatch events to a GraphQL mutation, which writes them onto a
-Kafka topic and returns immediately. A consumer in the same process reads
-the topic asynchronously, persisting events to Postgres in batches and
-pushing real-time updates to GraphQL subscribers — demonstrating how Kafka
-decouples ingestion from processing behind the endpoint.
+A self-contained example of the "third-party analytics service" pattern:
+client services dispatch events to a GraphQL mutation, which validates them,
+writes them onto a Kafka topic, and returns immediately. A consumer reads
+the topic asynchronously, persisting events to Postgres in idempotent
+batches and pushing real-time updates to GraphQL subscribers. Kafka
+decouples *receiving* an event from *processing* it — if processing is
+slow or down, events queue up instead of being dropped, and history can be
+replayed.
+
+```
+                    ┌─────────────────────── backend (Node/TS) ───────────────────────┐
+                    │                                                                  │
+ client services ──▶│  GraphQL mutation ──▶ producer.send ──▶ [ Kafka topic ]          │
+                    │                                              │                   │
+ dashboards ◀───────│  GraphQL query  ◀── Postgres ◀── batch INSERT ◀── consumer       │
+ live feeds ◀───────│  GraphQL subscription ◀────── pubsub ◀──────────┘                │
+                    │                                                                  │
+                    │  /metrics ──▶ Prometheus ──▶ Grafana                              │
+                    └──────────────────────────────────────────────────────────────────┘
+```
 
 ## Stack
 
-- **Kafka** — single-broker, KRaft mode (no Zookeeper), `apache/kafka` image
+- **Kafka** — single broker, KRaft mode (no Zookeeper), `apache/kafka` image
 - **Postgres 16** — persistence layer for consumed events
-- **Apollo Server 5** (Express via `@as-integrations/express4` + `graphql-ws` for subscriptions), written in **TypeScript**
-- **kafkajs** for the producer/consumer, **pg** for Postgres
+- **Apollo Server 5** — Express via `@as-integrations/express4`,
+  subscriptions via `graphql-ws`; written in **TypeScript** (strict)
+- **kafkajs** producer/consumer, **pg** for Postgres, **prom-client** for metrics
+- **Prometheus + Grafana + kafka-exporter** for telemetry,
+  **Redpanda Console** and **pgweb** as data GUIs
 - **yarn** as the package manager
 
 ## Run it
@@ -21,43 +38,18 @@ decouples ingestion from processing behind the endpoint.
 docker compose up --build
 ```
 
-- GraphQL endpoint: http://localhost:4000/graphql
-- Kafka broker (from host): localhost:9092
-- Postgres (from host): localhost:5432, user/password/db all `analytics`
-- pgweb (Postgres GUI): http://localhost:8081 — auto-connects to the
-  `analytics` database; browse the `events` table or run ad-hoc SQL
+### Services & ports
 
-## Observability
-
-- **Grafana**: http://localhost:3001 — anonymous access, provisioned
-  "Kafka Analytics Pipeline" dashboard (consumer lag, produce/consume/insert
-  rates, GraphQL + producer/consumer latency p95, rebalances, pg pool,
-  event loop lag)
-- **Prometheus**: http://localhost:9090 — scrapes the backend and
-  kafka-exporter every 10s
-- **Redpanda Console** (Kafka GUI): http://localhost:8082 — browse topics,
-  messages, consumer groups and their lag
-- **Backend metrics**: http://localhost:4000/metrics — prom-client
-  (kafkajs instrumentation events, pg pool gauges, GraphQL operation
-  histograms, Node process defaults)
-
-The headline metric is **consumer group lag** (`kafka_consumergroup_lag`,
-exported cluster-side by kafka-exporter): growing lag means processing is
-falling behind ingestion.
-
-## Local development (backend only)
-
-```bash
-cd backend
-yarn install
-yarn dev      # tsx watch, runs src/index.ts directly, no build step
-yarn build    # compiles src/ -> dist/ with tsc
-yarn start    # runs the compiled dist/index.js
-```
-
-`yarn dev` expects Kafka reachable at `KAFKA_BROKER` (defaults to
-`kafka:19092`); run `docker compose up kafka` separately and set
-`KAFKA_BROKER=localhost:9092` if working on the backend outside Docker.
+| Service | URL / address | Notes |
+|---|---|---|
+| GraphQL API | http://localhost:4000/graphql | Apollo Sandbox in the browser; WS subscriptions on the same path |
+| Backend metrics | http://localhost:4000/metrics | Prometheus exposition format |
+| Kafka broker | `localhost:9092` | from the host; containers use `kafka:19092` |
+| Postgres | `localhost:5432` | user / password / db all `analytics` |
+| pgweb (Postgres GUI) | http://localhost:8081 | auto-connects; browse `events` or run SQL |
+| Redpanda Console (Kafka GUI) | http://localhost:8082 | topics, messages, consumer groups & lag |
+| Prometheus | http://localhost:9090 | scrapes backend + kafka-exporter every 10s |
+| Grafana | http://localhost:3001 | anonymous access; dashboard auto-provisioned |
 
 ## Try it
 
@@ -74,7 +66,8 @@ mutation {
 }
 ```
 
-Read recently processed events (query, populated by the Kafka consumer):
+Read recently processed events (query — served from Postgres, populated by
+the Kafka consumer):
 
 ```graphql
 query {
@@ -87,7 +80,7 @@ query {
 }
 ```
 
-Watch events arrive in real time (subscription):
+Watch events arrive in real time (subscription, over `graphql-ws`):
 
 ```graphql
 subscription {
@@ -100,19 +93,93 @@ subscription {
 }
 ```
 
-Open http://localhost:4000/graphql in a browser for Apollo Sandbox, or use
-any GraphQL client that supports `graphql-ws` for the subscription.
+## How it works
 
-## Notes
+**Ingestion is fire-and-forget from the caller's perspective.** The
+`trackEvent` mutation waits only for the Kafka `producer.send`
+acknowledgment — not for processing — and returns. This is the same shape
+as the ingestion endpoint of a real analytics pipeline.
 
-- The `trackEvent` mutation only waits for the Kafka `producer.send`
-  acknowledgment, not for processing — this is the same shape as an
-  ingestion endpoint in front of a real analytics pipeline.
-- Consumed events are persisted to Postgres (`events` table) with one
-  multi-row `INSERT` per Kafka batch and `ON CONFLICT (id) DO NOTHING`
-  dedup, so Kafka's at-least-once redelivery is effectively exactly-once
-  in the database. Events survive backend restarts.
-- Both the client-reported time (`occurred_at`) and the server ingestion
-  time (`received_at`) are stored — client clocks lie.
-- Topic `analytics-events` is auto-created on first publish (single
-  partition, replication factor 1 — fine for local dev, not for production).
+**Persistence is batched and idempotent.** The consumer uses kafkajs
+`eachBatch`: one multi-row `INSERT` per Kafka batch, with
+`ON CONFLICT (id) DO NOTHING`. Offsets commit only after the handler
+resolves, so a crash before the insert means redelivery, not data loss —
+and the dedup makes Kafka's at-least-once redelivery effectively
+exactly-once in the database. Events survive backend restarts.
+
+**Two timestamps per event.** The client-reported `occurred_at` and the
+server-side `received_at` are both stored — client clocks lie.
+
+**Topic `analytics-events`** is auto-created on first publish (single
+partition, replication factor 1 — fine for local dev, not production).
+
+**Unparseable messages** are counted and skipped (a proper dead-letter
+topic is on the roadmap).
+
+## Observability
+
+Backend instrumentation ([backend/src/metrics.ts](backend/src/metrics.ts)):
+
+- GraphQL operation duration & error counts (Apollo plugin, per operation)
+- `producer.send` latency — the mutation's critical path
+- Consumer batch duration & size; consumed / inserted / unparseable counters
+- Consumer group rebalances and crashes (kafkajs instrumentation events)
+- `pg` pool gauges (total / idle / waiting) and Node process defaults
+  (event loop lag, heap, GC)
+
+Cluster-side Kafka metrics come from **kafka-exporter**; the headline
+metric is **consumer group lag** (`kafka_consumergroup_lag`): growing lag
+means processing is falling behind ingestion.
+
+Grafana auto-provisions the **"Kafka Analytics Pipeline"** dashboard
+(consumer lag, produce/consume/insert rates, latency p95s, rebalances &
+crashes, pg pool, event loop lag) from
+[monitoring/grafana/dashboards](monitoring/grafana/dashboards).
+
+## Local development (backend only)
+
+```bash
+cd backend
+yarn install
+yarn dev      # tsx watch, runs src/index.ts directly, no build step
+yarn build    # compiles src/ -> dist/ with tsc
+yarn start    # runs the compiled dist/index.js
+```
+
+`yarn dev` expects Kafka at `KAFKA_BROKER` and Postgres at `DATABASE_URL`
+(defaults target the compose network); when running the backend outside
+Docker, start the infra with `docker compose up kafka postgres` and set:
+
+```bash
+KAFKA_BROKER=localhost:9092 \
+DATABASE_URL=postgres://analytics:analytics@localhost:5432/analytics \
+yarn dev
+```
+
+## Project layout
+
+```
+backend/
+  src/
+    index.ts      # Express + Apollo + WS server, Kafka consumer loop
+    schema.ts     # GraphQL typeDefs
+    resolvers.ts  # trackEvent / recentEvents / eventTracked
+    kafka.ts      # kafkajs client, producer, consumer, topic
+    db.ts         # pg pool, schema init, batched inserts, queries
+    metrics.ts    # prom-client registry and all custom metrics
+    pubsub.ts     # in-process pubsub for subscriptions
+    types.ts      # shared event types
+monitoring/
+  prometheus/     # scrape config
+  grafana/        # provisioned datasource + dashboard
+docker-compose.yml
+TODO.md           # roadmap: SDK design, consent/GDPR readiness, telemetry
+```
+
+## Roadmap
+
+See [TODO.md](TODO.md) — notable next steps: HTTP `POST /v1/events`
+ingestion route + embeddable JS/React SDK, consent-aware tracking &
+GDPR erasure strategy, alerting rules, a dead-letter topic, splitting the
+consumer into its own worker container, and a ClickHouse migration path
+when Postgres aggregations stop scaling.
