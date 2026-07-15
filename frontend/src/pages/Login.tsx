@@ -1,7 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/AuthContext';
-import NavBar from '../components/NavBar';
 
 // Form structure ported from debt-tracker's LoginForm (login/register mode
 // toggle, inline error, loading state). Google OAuth + OTP flows from that
@@ -49,7 +48,6 @@ export default function Login() {
 
   return (
     <div className="login-page">
-      <NavBar />
       <div className="login-card">
         <Link to="/" className="wordmark">
           Bupis

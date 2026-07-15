@@ -391,7 +391,8 @@ body {
   font-family: var(--ui-sans);
 }
 
-.dash-topbar {
+/* Product-page chrome (NavBar variant="app"). */
+.appnav {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -408,7 +409,7 @@ body {
   color: var(--ink);
 }
 
-.dash-user {
+.appnav-user {
   display: flex;
   align-items: baseline;
   gap: 14px;

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useAuth } from '../lib/AuthContext';
+import NavBar from '../components/NavBar';
 import {
   gql,
   RECENT_EVENTS_QUERY,
@@ -11,7 +11,7 @@ import {
 const POLL_MS = 5000;
 
 export default function Dashboard() {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const [events, setEvents] = useState<AnalyticsEvent[]>([]);
   const [offline, setOffline] = useState(false);
   const [sending, setSending] = useState(false);
@@ -57,17 +57,7 @@ export default function Dashboard() {
 
   return (
     <div className="dash">
-      <header className="dash-topbar">
-        <Link to="/" className="wordmark">
-          Bupis
-        </Link>
-        <div className="dash-user">
-          <span>{user?.email}</span>
-          <button type="button" className="btn btn--bare" onClick={signOut}>
-            Sign out
-          </button>
-        </div>
-      </header>
+      <NavBar variant="app" />
       <hr className="rule" />
 
       <section className="dash-greeting">
