@@ -20,7 +20,7 @@ interface AuthContextValue {
   signOut: () => void;
 }
 
-const STORAGE_KEY = 'pulse.auth';
+const STORAGE_KEY = 'bupis.auth';
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 

@@ -113,12 +113,90 @@ body {
   color: var(--ink);
 }
 
+/* ---------- marketing top bar ----------
+   Persistent full-width header for the logged-out/public site: brand,
+   centered links, auth actions on the right. Sticky (stays in flow, so it
+   never overlaps content) and the same paper background as the page — an
+   integrated masthead rather than a floating card of chrome on top of it. */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--paper);
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 18px clamp(24px, 5vw, 64px);
+  border-bottom: 2px solid var(--rule);
+}
+
+/* Brand wordmark everywhere matches the serif brand in the homepage
+   headline: Newsreader 700, normal case. */
+.topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: 22px;
+  line-height: 1;
+  text-decoration: none;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+/* Logo placeholder — swap for the real mark when it exists. */
+.topbar-logo {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--ink);
+  display: inline-block;
+}
+
+.topbar-links {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+}
+
+.topbar-links a {
+  font-family: var(--ui-sans);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--ink-soft);
+}
+
+.topbar-links a:hover {
+  color: var(--ink);
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+@media (max-width: 640px) {
+  .topbar-links {
+    display: none;
+  }
+}
+
+.btn--sm {
+  padding: 8px 18px;
+  font-size: 12px;
+}
+
 /* ---------- marketing home (poster fonts, bolder) ---------- */
 
 .home {
   max-width: 760px;
   margin: 0 auto;
-  padding: 48px 24px 80px;
+  padding: 64px 24px 80px;
   text-align: center;
 }
 
@@ -180,6 +258,7 @@ body {
   gap: 32px;
   text-align: left;
   margin: 56px 0 72px;
+  scroll-margin-top: 90px;
 }
 
 @media (max-width: 640px) {
@@ -242,7 +321,17 @@ body {
   font-family: var(--ui-sans);
 }
 
+.wordmark {
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: 24px;
+  line-height: 1;
+  text-decoration: none;
+  color: var(--ink);
+}
+
 .login-card .wordmark {
+  display: inline-block;
   margin-bottom: 6px;
 }
 
@@ -324,39 +413,174 @@ body {
   color: var(--ink-soft);
 }
 
+/* ---------- app shell (logged-in product chrome) ----------
+   Persistent left sidebar instead of the marketing site's top bar — brand,
+   nav, and account live here; product pages no longer carry their own
+   inline nav row. Ink-filled sidebar (still just our two-tone palette,
+   inverted) so the "app" and "marketing site" are visually distinct without
+   introducing new colors. */
+
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  background: var(--ink);
+  color: var(--paper);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 24px 20px;
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: 22px;
+  line-height: 1;
+  text-decoration: none;
+  color: var(--paper);
+  margin-bottom: 40px;
+}
+
+.sidebar-logo {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--paper);
+  display: inline-block;
+}
+
+.sidebar-kicker {
+  font-family: var(--ui-sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(207, 233, 77, 0.55);
+  margin-bottom: 10px;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar-nav-item {
+  font-family: var(--ui-sans);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  color: rgba(207, 233, 77, 0.75);
+  padding: 9px 12px;
+  border-radius: 8px;
+  border-left: 2px solid transparent;
+}
+
+.sidebar-nav-item:hover {
+  color: var(--paper);
+}
+
+.sidebar-nav-item--active {
+  color: var(--paper);
+  background: rgba(207, 233, 77, 0.12);
+  border-left-color: var(--paper);
+}
+
+.sidebar-footer {
+  border-top: 1px solid rgba(207, 233, 77, 0.2);
+  padding-top: 16px;
+}
+
+.sidebar-user {
+  font-family: var(--ui-sans);
+  font-size: 13px;
+  color: rgba(207, 233, 77, 0.7);
+  margin-bottom: 10px;
+  word-break: break-all;
+}
+
+.sidebar-signout {
+  font-family: var(--ui-sans);
+  font-size: 13px;
+  font-weight: 600;
+  background: transparent;
+  border: 1.5px solid var(--paper);
+  color: var(--paper);
+  border-radius: 8px;
+  padding: 7px 14px;
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.sidebar-signout:hover {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+@media (max-width: 720px) {
+  .app-shell {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    height: auto;
+    position: static;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+  }
+
+  .sidebar-brand {
+    margin-bottom: 0;
+  }
+
+  .sidebar-kicker {
+    display: none;
+  }
+
+  .sidebar-nav {
+    flex-direction: row;
+  }
+
+  .sidebar-footer {
+    border-top: none;
+    padding-top: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .sidebar-user {
+    margin-bottom: 0;
+  }
+}
+
+.app-main {
+  flex: 1;
+  min-width: 0;
+}
+
 /* ---------- dashboard (DM Sans / DM Mono) ---------- */
 
 .dash {
   max-width: 960px;
   margin: 0 auto;
-  padding: 32px 24px 64px;
+  padding: 40px 24px 64px;
   font-family: var(--ui-sans);
-}
-
-.dash-topbar {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 16px;
-  padding-bottom: 16px;
-}
-
-.wordmark {
-  font-family: var(--sans);
-  font-weight: 900;
-  font-size: 18px;
-  letter-spacing: 0.28em;
-  text-transform: uppercase;
-  text-decoration: none;
-  color: var(--ink);
-}
-
-.dash-user {
-  display: flex;
-  align-items: baseline;
-  gap: 14px;
-  font-size: 14px;
-  color: var(--ink-soft);
 }
 
 .dash .kicker {

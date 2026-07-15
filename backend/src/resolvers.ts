@@ -7,6 +7,7 @@ import type { AnalyticsEvent, EventInput } from './types.js';
 
 export const resolvers = {
   Query: {
+    // explore using redis or other caching layer to store recent events, so we don't have to query the database every time.
     recentEvents: (
       _parent: unknown,
       { limit = 20 }: { limit?: number },
