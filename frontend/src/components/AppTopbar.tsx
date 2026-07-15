@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useAuth } from '../lib/AuthContext';
 
 // Top bar for the logged-in app shell, sitting above the page content next
@@ -5,6 +6,10 @@ import { useAuth } from '../lib/AuthContext';
 // icons and an account avatar on the right, matching the reference app's
 // header pattern. Search actually filters the events table below; the bell
 // and gear are chrome placeholders (no notifications/settings exist yet).
+//
+// Below 720px the Sidebar (and its brand mark) disappears entirely, so this
+// bar also carries a mobile-only wordmark — shown only via CSS at that
+// breakpoint, alongside the avatar, with search/bell/gear dropping out.
 
 interface AppTopbarProps {
   search: string;
@@ -17,6 +22,11 @@ export default function AppTopbar({ search, onSearchChange }: AppTopbarProps) {
 
   return (
     <header className="app-topbar">
+      <Link to="/" className="app-topbar-brand">
+        <span className="app-topbar-brand-logo" aria-hidden="true" />
+        <span>Bupis</span>
+      </Link>
+
       <label className="app-search-wrap">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <circle cx="11" cy="11" r="8" />

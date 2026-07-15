@@ -529,43 +529,15 @@ body {
   color: var(--ink);
 }
 
+/* Below 720px the sidebar disappears entirely — the app top bar (see
+   .app-topbar-brand below) becomes the only chrome: wordmark + avatar. */
 @media (max-width: 720px) {
   .app-shell {
     flex-direction: column;
   }
 
   .sidebar {
-    width: 100%;
-    height: auto;
-    position: static;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px 20px;
-  }
-
-  .sidebar-brand {
-    margin-bottom: 0;
-  }
-
-  .sidebar-kicker {
     display: none;
-  }
-
-  .sidebar-nav {
-    flex-direction: row;
-  }
-
-  .sidebar-footer {
-    border-top: none;
-    padding-top: 0;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .sidebar-user {
-    margin-bottom: 0;
   }
 }
 
@@ -587,6 +559,28 @@ body {
   position: sticky;
   top: 0;
   z-index: 10;
+}
+
+/* Mobile-only brand mark — the sidebar (which normally carries the brand)
+   disappears below 720px, so the top bar shows this instead. */
+.app-topbar-brand {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.app-topbar-brand-logo {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--ink);
+  display: inline-block;
 }
 
 .app-search-wrap {
@@ -670,9 +664,21 @@ body {
   margin-left: 4px;
 }
 
-@media (max-width: 640px) {
+/* Below 720px: only the wordmark and avatar remain — search and the
+   notification/settings icons drop out, matching the sidebar's disappearance
+   at the same breakpoint. */
+@media (max-width: 720px) {
   .app-topbar {
     padding: 12px 16px;
+  }
+
+  .app-topbar-brand {
+    display: flex;
+  }
+
+  .app-search-wrap,
+  .app-topbar-actions .icon-btn {
+    display: none;
   }
 }
 
