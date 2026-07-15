@@ -113,12 +113,69 @@ body {
   color: var(--ink);
 }
 
+/* ---------- floating navbar ---------- */
+
+.navbar {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(960px, calc(100% - 32px));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--ink);
+  color: var(--paper);
+  border-radius: 16px;
+  padding: 10px 12px 10px 16px;
+  z-index: 100;
+}
+
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--sans);
+  font-weight: 900;
+  font-size: 15px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  text-decoration: none;
+  color: var(--paper);
+}
+
+/* Logo placeholder — swap for the real mark when it exists. */
+.navbar-logo {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--paper);
+  display: inline-block;
+}
+
+.navbar-login {
+  font-family: var(--ui-sans);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  color: var(--ink);
+  background: var(--paper);
+  border-radius: 10px;
+  padding: 8px 18px;
+  transition: opacity 120ms ease;
+}
+
+.navbar-login:hover {
+  opacity: 0.85;
+}
+
 /* ---------- marketing home (poster fonts, bolder) ---------- */
 
 .home {
   max-width: 760px;
   margin: 0 auto;
-  padding: 48px 24px 80px;
+  padding: 104px 24px 80px;
   text-align: center;
 }
 

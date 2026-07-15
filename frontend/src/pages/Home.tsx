@@ -1,15 +1,14 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../lib/AuthContext';
+import NavBar from '../components/NavBar';
 
 export default function Home() {
   const { isAuthenticated } = useAuth();
 
   return (
     <div className="home">
+      <NavBar />
       <hr className="rule" />
-      <p className="kicker" style={{ marginTop: 14 }}>
-        dare.dev presents
-      </p>
 
       <h1 className="home-headline">
         <span className="headline-brand">Pulse</span> is coming to <em>your stack</em>.
