@@ -11,7 +11,9 @@ export const producer = kafka.producer();
 export const consumer = kafka.consumer({ groupId: 'analytics-consumer-group' });
 export const TOPIC = 'analytics-events';
 
+// explain this line
 consumer.on(consumer.events.GROUP_JOIN, () => consumerRebalancesTotal.inc());
+// explain this line
 consumer.on(consumer.events.CRASH, () => consumerCrashesTotal.inc());
 
 export async function connectKafka(retries = 15, delayMs = 3000): Promise<void> {
@@ -19,6 +21,7 @@ export async function connectKafka(retries = 15, delayMs = 3000): Promise<void> 
     try {
       await producer.connect();
       await consumer.connect();
+      // what does subscribing do?
       await consumer.subscribe({ topic: TOPIC, fromBeginning: false });
       console.log('Connected to Kafka');
       return;
@@ -30,3 +33,4 @@ export async function connectKafka(retries = 15, delayMs = 3000): Promise<void> 
   }
   throw new Error('Could not connect to Kafka after multiple retries');
 }
+// what happens if kafka fails? 
