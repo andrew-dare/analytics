@@ -42,7 +42,7 @@ docker compose up --build
 
 | Service | URL / address | Notes |
 |---|---|---|
-| Frontend (Pulse) | http://localhost:5173 | nginx-served production build; for HMR dev, stop the container and run `yarn dev` in `frontend/` |
+| Frontend (Bupis) | http://localhost:5173 | nginx-served production build; for HMR dev, stop the container and run `yarn dev` in `frontend/` |
 | GraphQL API | http://localhost:4000/graphql | Apollo Sandbox in the browser; WS subscriptions on the same path |
 | Backend metrics | http://localhost:4000/metrics | Prometheus exposition format |
 | Kafka broker | `localhost:9092` | from the host; containers use `kafka:19092` |

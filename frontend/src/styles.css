@@ -131,15 +131,16 @@ body {
   z-index: 100;
 }
 
+/* Brand wordmark everywhere matches the serif brand in the homepage
+   headline: Newsreader 700, normal case. */
 .navbar-brand {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-family: var(--sans);
-  font-weight: 900;
-  font-size: 15px;
-  letter-spacing: 0.28em;
-  text-transform: uppercase;
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: 22px;
+  line-height: 1;
   text-decoration: none;
   color: var(--paper);
 }
@@ -399,11 +400,10 @@ body {
 }
 
 .wordmark {
-  font-family: var(--sans);
-  font-weight: 900;
-  font-size: 18px;
-  letter-spacing: 0.28em;
-  text-transform: uppercase;
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: 24px;
+  line-height: 1;
   text-decoration: none;
   color: var(--ink);
 }

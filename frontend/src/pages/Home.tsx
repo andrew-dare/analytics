@@ -11,7 +11,7 @@ export default function Home() {
       <hr className="rule" />
 
       <h1 className="home-headline">
-        <span className="headline-brand">Pulse</span> is coming to <em>your stack</em>.
+        <span className="headline-brand">Bupis</span> is coming to <em>your stack</em>.
         <br />
         Listening with a durable log &amp;
         <br />

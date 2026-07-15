@@ -52,7 +52,7 @@ export default function Login() {
       <NavBar />
       <div className="login-card">
         <Link to="/" className="wordmark">
-          Pulse
+          Bupis
         </Link>
         <h1>{mode === 'login' ? 'Sign in' : 'Create an account'}</h1>
         <p className="login-sub">

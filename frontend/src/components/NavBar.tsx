@@ -8,7 +8,7 @@ export default function NavBar() {
     <nav className="navbar">
       <Link to="/" className="navbar-brand">
         <span className="navbar-logo" aria-hidden="true" />
-        <span>Pulse</span>
+        <span>Bupis</span>
       </Link>
       <Link to="/login" className="navbar-login">
         Log in

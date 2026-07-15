@@ -28,6 +28,7 @@ export default function Dashboard() {
     }
   }, []);
 
+  // explain how this works
   useEffect(() => {
     void load();
     const timer = setInterval(() => void load(), POLL_MS);
@@ -58,7 +59,7 @@ export default function Dashboard() {
     <div className="dash">
       <header className="dash-topbar">
         <Link to="/" className="wordmark">
-          Pulse
+          Bupis
         </Link>
         <div className="dash-user">
           <span>{user?.email}</span>
