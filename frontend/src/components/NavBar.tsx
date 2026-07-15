@@ -2,8 +2,8 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../lib/AuthContext';
 
 // Industry-standard nav that persists across auth states:
-// - "marketing" (floating rounded bar): right side adapts — "Log in" when
-//   signed out, "Dashboard" when signed in.
+// - "marketing" (inline masthead — part of the page, not floating chrome):
+//   right side adapts — "Log in" when signed out, "Dashboard" when signed in.
 // - "app" (product chrome): brand on the left, user identity + sign out on
 //   the right.
 // The login page intentionally renders no nav at all.
@@ -38,11 +38,11 @@ export default function NavBar({ variant = 'marketing' }: NavBarProps) {
         <span>Bupis</span>
       </Link>
       {isAuthenticated ? (
-        <Link to="/dashboard" className="navbar-login">
+        <Link to="/dashboard" className="btn btn--sm">
           Dashboard
         </Link>
       ) : (
-        <Link to="/login" className="navbar-login">
+        <Link to="/login" className="btn btn--sm">
           Log in
         </Link>
       )}
