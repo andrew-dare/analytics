@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../lib/AuthContext';
-import NavBar from '../components/NavBar';
+import Sidebar from '../components/Sidebar';
 import {
   gql,
   RECENT_EVENTS_QUERY,
@@ -56,74 +56,81 @@ export default function Dashboard() {
   const lastEvent = events[0];
 
   return (
-    <div className="dash">
-      <NavBar variant="app" />
-      <hr className="rule" />
+    <div className="app-shell">
+      <Sidebar />
+      <main className="app-main">
+        <div className="dash">
+          <section className="dash-greeting">
+            <p className="kicker">you are signed in</p>
+            <h1>
+              Welcome to <em>your data</em>.
+            </h1>
+          </section>
 
-      <section className="dash-greeting">
-        <p className="kicker">you are signed in</p>
-        <h1>
-          Welcome to <em>your data</em>.
-        </h1>
-      </section>
+          {offline && (
+            <p className="dash-offline">
+              The analytics backend isn't reachable at localhost:4000 — start it with
+              `docker compose up` and this page will recover on its own.
+            </p>
+          )}
 
-      {offline && (
-        <p className="dash-offline">
-          The analytics backend isn't reachable at localhost:4000 — start it with
-          `docker compose up` and this page will recover on its own.
-        </p>
-      )}
-
-      <div className="dash-stats">
-        <div className="stat">
-          <div className="stat-value">{events.length}</div>
-          <div className="stat-label">recent events</div>
-        </div>
-        <div className="stat">
-          <div className="stat-value">{services.size}</div>
-          <div className="stat-label">services seen</div>
-        </div>
-        <div className="stat">
-          <div className="stat-value">
-            {lastEvent ? new Date(lastEvent.timestamp).toLocaleTimeString() : '—'}
+          <div className="dash-stats">
+            <div className="stat">
+              <div className="stat-value">{events.length}</div>
+              <div className="stat-label">recent events</div>
+            </div>
+            <div className="stat">
+              <div className="stat-value">{services.size}</div>
+              <div className="stat-label">services seen</div>
+            </div>
+            <div className="stat">
+              <div className="stat-value">
+                {lastEvent ? new Date(lastEvent.timestamp).toLocaleTimeString() : '—'}
+              </div>
+              <div className="stat-label">last event</div>
+            </div>
           </div>
-          <div className="stat-label">last event</div>
+
+          <div className="dash-section-head">
+            <h2>Recent events</h2>
+            <button
+              type="button"
+              className="btn"
+              onClick={sendTestEvent}
+              disabled={sending || offline}
+            >
+              {sending ? 'Sending…' : 'Emit test event'}
+            </button>
+          </div>
+
+          {events.length === 0 && !offline ? (
+            <p className="dash-empty">
+              No events yet — emit a test event, or point a service at the trackEvent mutation.
+            </p>
+          ) : (
+            <table className="events-table">
+              <thead>
+                <tr>
+                  <th>Service</th>
+                  <th>Event type</th>
+                  <th>Payload</th>
+                  <th>Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                {events.map((event) => (
+                  <tr key={event.id}>
+                    <td className="mono">{event.service}</td>
+                    <td className="mono">{event.eventType}</td>
+                    <td>{event.payload ?? '—'}</td>
+                    <td>{new Date(event.timestamp).toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
-      </div>
-
-      <div className="dash-section-head">
-        <h2>Recent events</h2>
-        <button type="button" className="btn" onClick={sendTestEvent} disabled={sending || offline}>
-          {sending ? 'Sending…' : 'Emit test event'}
-        </button>
-      </div>
-
-      {events.length === 0 && !offline ? (
-        <p className="dash-empty">
-          No events yet — emit a test event, or point a service at the trackEvent mutation.
-        </p>
-      ) : (
-        <table className="events-table">
-          <thead>
-            <tr>
-              <th>Service</th>
-              <th>Event type</th>
-              <th>Payload</th>
-              <th>Time</th>
-            </tr>
-          </thead>
-          <tbody>
-            {events.map((event) => (
-              <tr key={event.id}>
-                <td className="mono">{event.service}</td>
-                <td className="mono">{event.eventType}</td>
-                <td>{event.payload ?? '—'}</td>
-                <td>{new Date(event.timestamp).toLocaleString()}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+      </main>
     </div>
   );
 }
