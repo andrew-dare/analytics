@@ -5,6 +5,7 @@ export const register = new client.Registry();
 // Node process defaults: event loop lag, heap, GC, CPU.
 client.collectDefaultMetrics({ register });
 
+// why are the histograms defined here, and separately in grafana dashboards?
 export const graphqlOperationDuration = new client.Histogram({
   name: 'graphql_operation_duration_seconds',
   help: 'GraphQL operation duration by operation name',

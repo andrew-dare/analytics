@@ -35,10 +35,13 @@ const wsServer = new WebSocketServer({ server: httpServer, path: '/graphql' });
 const serverCleanup = useServer({ schema }, wsServer);
 
 const metricsPlugin: ApolloServerPlugin = {
+  // does async block return?
   async requestDidStart() {
+    // what is the purpose of this startTimer? is it to measure the duration of the graphql operation?
     const endTimer = graphqlOperationDuration.startTimer();
     return {
       async willSendResponse(ctx) {
+        // explain endtimer
         endTimer({ operation: ctx.operationName ?? 'anonymous' });
       },
       async didEncounterErrors(ctx) {
@@ -52,6 +55,7 @@ const server = new ApolloServer({
   schema,
   plugins: [
     metricsPlugin,
+    // will drainserver keep the server alive until all active connections are closed? or will it just close the server and let the connections die?
     ApolloServerPluginDrainHttpServer({ httpServer }),
     {
       async serverWillStart() {
@@ -69,6 +73,7 @@ await server.start();
 
 app.use('/graphql', cors(), bodyParser.json(), expressMiddleware(server));
 
+// is this a stream? how does prometheus use this endpoint?
 app.get('/metrics', async (_req, res) => {
   res.set('Content-Type', register.contentType);
   res.send(await register.metrics());
@@ -83,7 +88,12 @@ async function main(): Promise<void> {
   // eachBatch gives natural write batching: one multi-row INSERT per Kafka
   // batch, and offsets are only committed after the batch handler resolves —
   // so a crash before the INSERT lands means redelivery, not data loss.
+
+  // consumer reads the data from the producer?
+  // is the producer the graphQL mutation for sending analytic events?
   await consumer.run({
+    // what is a batch?
+    // what defines the size of a batch?
     eachBatch: async ({ batch, heartbeat }) => {
       const endTimer = consumerBatchDuration.startTimer();
       consumerBatchSize.observe(batch.messages.length);
@@ -94,19 +104,25 @@ async function main(): Promise<void> {
         try {
           events.push(JSON.parse(message.value.toString()) as AnalyticsEvent);
         } catch {
+          // explain this next line
           eventsUnparseableTotal.inc();
           console.error(`Skipping unparseable message at offset ${message.offset}`);
         }
       }
 
       if (events.length > 0) {
+        // is this writing to the database?
+        // does this block pubsub.publish until write is complete?
         await insertEvents(events);
+        // explain this line
         eventsConsumedTotal.inc(events.length);
         for (const event of events) {
+          // what is the purpose of this pubsub.publish? is it to notify subscribers of new events? 
           pubsub.publish(EVENT_TRACKED, { eventTracked: event });
         }
       }
 
+      // what is the purpose of this
       await heartbeat();
       endTimer();
     },
