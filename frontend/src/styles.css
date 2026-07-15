@@ -1,18 +1,22 @@
-/* Poster-inspired theme: pale mint paper, near-black ink, editorial
-   serif for lyrical copy, bold condensed sans for emphasis. */
+/* Poster-inspired theme, v2: funky high-contrast chartreuse paper with
+   black ink throughout. Marketing page keeps the editorial serif/sans
+   pairing (bolder); login + in-app screens use DM Sans / DM Mono, matching
+   debt-tracker's UI language. */
 
 :root {
-  --paper: #e1ebe1;
-  --paper-deep: #d3e0d5;
+  --paper: #cfe94d;
+  --paper-deep: #bedb3a;
   --ink: #17170f;
-  --ink-soft: #4a4a40;
-  --ink-faint: #7c7c70;
-  --rule: rgba(23, 23, 15, 0.85);
-  --rule-faint: rgba(23, 23, 15, 0.25);
-  --error: #8c2f1b;
+  --ink-soft: #3d3d30;
+  --ink-faint: #6b6b55;
+  --rule: rgba(23, 23, 15, 0.9);
+  --rule-faint: rgba(23, 23, 15, 0.3);
+  --error: #7a2413;
 
   --serif: 'Newsreader', 'Iowan Old Style', Georgia, serif;
   --sans: 'Archivo', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --ui-sans: 'DM Sans', 'Helvetica Neue', sans-serif;
+  --ui-mono: 'DM Mono', ui-monospace, monospace;
 }
 
 * {
@@ -41,7 +45,7 @@ body {
 .kicker {
   font-family: var(--sans);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: 0.22em;
   text-transform: uppercase;
 }
@@ -49,12 +53,12 @@ body {
 .kicker .kicker-lower {
   text-transform: none;
   letter-spacing: 0.08em;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .rule {
   border: none;
-  border-top: 1.5px solid var(--rule);
+  border-top: 2px solid var(--rule);
 }
 
 .rule--faint {
@@ -64,11 +68,11 @@ body {
 .btn {
   font-family: var(--sans);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   padding: 14px 28px;
-  border: 1.5px solid var(--ink);
+  border: 2px solid var(--ink);
   background: transparent;
   color: var(--ink);
   cursor: pointer;
@@ -109,7 +113,7 @@ body {
   color: var(--ink);
 }
 
-/* ---------- marketing home ---------- */
+/* ---------- marketing home (poster fonts, bolder) ---------- */
 
 .home {
   max-width: 760px;
@@ -120,7 +124,7 @@ body {
 
 .home-headline {
   font-family: var(--serif);
-  font-weight: 500;
+  font-weight: 700;
   font-size: clamp(34px, 6vw, 56px);
   line-height: 1.12;
   letter-spacing: -0.01em;
@@ -129,16 +133,16 @@ body {
 
 .home-headline em {
   font-style: italic;
-  font-weight: 400;
+  font-weight: 500;
 }
 
 .home-headline .headline-brand {
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .home-dates {
   font-family: var(--sans);
-  font-weight: 800;
+  font-weight: 900;
   font-size: clamp(28px, 5vw, 44px);
   letter-spacing: 0.02em;
   line-height: 1.1;
@@ -148,7 +152,7 @@ body {
 .home-dates-sub {
   font-family: var(--sans);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.08em;
   margin-bottom: 40px;
 }
@@ -156,7 +160,7 @@ body {
 .home-invite {
   font-family: var(--serif);
   font-size: clamp(24px, 4vw, 34px);
-  font-weight: 500;
+  font-weight: 600;
   line-height: 1.25;
   margin: 40px auto 48px;
   max-width: 560px;
@@ -187,7 +191,7 @@ body {
 .feature h3 {
   font-family: var(--sans);
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 900;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   margin-bottom: 10px;
@@ -195,6 +199,7 @@ body {
 
 .feature p {
   font-size: 16px;
+  font-weight: 500;
   color: var(--ink-soft);
 }
 
@@ -216,7 +221,7 @@ body {
   font-size: 0.55em;
 }
 
-/* ---------- login ---------- */
+/* ---------- login (DM Sans, rounded) ---------- */
 
 .login-page {
   min-height: 100vh;
@@ -229,10 +234,12 @@ body {
 .login-card {
   width: 100%;
   max-width: 420px;
-  border: 1.5px solid var(--ink);
+  border: 2px solid var(--ink);
+  border-radius: 18px;
   padding: 40px 36px 32px;
   background: var(--paper);
   text-align: center;
+  font-family: var(--ui-sans);
 }
 
 .login-card .wordmark {
@@ -240,50 +247,49 @@ body {
 }
 
 .login-card h1 {
-  font-family: var(--serif);
-  font-size: 30px;
-  font-weight: 500;
+  font-family: var(--ui-sans);
+  font-size: 26px;
+  font-weight: 600;
   margin: 10px 0 4px;
 }
 
 .login-card .login-sub {
-  font-style: italic;
   color: var(--ink-soft);
-  font-size: 17px;
+  font-size: 15px;
   margin-bottom: 28px;
 }
 
 .form-field {
   display: block;
   text-align: left;
-  margin-bottom: 18px;
+  margin-bottom: 16px;
 }
 
 .form-field span {
   display: block;
-  font-family: var(--sans);
+  font-family: var(--ui-sans);
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
+  font-weight: 600;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   margin-bottom: 6px;
 }
 
 .form-field input {
   width: 100%;
-  font-family: var(--serif);
-  font-size: 17px;
-  padding: 10px 12px;
+  font-family: var(--ui-sans);
+  font-size: 15px;
+  padding: 9px 12px;
   background: transparent;
-  border: none;
-  border-bottom: 1.5px solid var(--ink);
+  border: 1.5px solid var(--ink);
+  border-radius: 8px;
   color: var(--ink);
   outline: none;
+  transition: background 120ms ease;
 }
 
 .form-field input::placeholder {
   color: var(--ink-faint);
-  font-style: italic;
 }
 
 .form-field input:focus {
@@ -292,24 +298,39 @@ body {
 
 .login-error {
   color: var(--error);
-  font-style: italic;
-  font-size: 15px;
+  font-size: 14px;
+  font-weight: 500;
   margin-bottom: 14px;
+}
+
+.login-card .btn {
+  font-family: var(--ui-sans);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  border-radius: 8px;
+  padding: 11px 20px;
+}
+
+.login-card .btn--bare {
+  border-radius: 0;
+  padding: 2px 6px;
 }
 
 .login-toggle {
   margin-top: 22px;
-  font-size: 15px;
-  font-style: italic;
+  font-size: 14px;
   color: var(--ink-soft);
 }
 
-/* ---------- dashboard ---------- */
+/* ---------- dashboard (DM Sans / DM Mono) ---------- */
 
 .dash {
   max-width: 960px;
   margin: 0 auto;
   padding: 32px 24px 64px;
+  font-family: var(--ui-sans);
 }
 
 .dash-topbar {
@@ -334,9 +355,12 @@ body {
   display: flex;
   align-items: baseline;
   gap: 14px;
-  font-style: italic;
-  font-size: 15px;
+  font-size: 14px;
   color: var(--ink-soft);
+}
+
+.dash .kicker {
+  font-family: var(--ui-sans);
 }
 
 .dash-greeting {
@@ -345,22 +369,22 @@ body {
 }
 
 .dash-greeting h1 {
-  font-family: var(--serif);
-  font-weight: 500;
-  font-size: clamp(30px, 5vw, 44px);
+  font-family: var(--ui-sans);
+  font-weight: 600;
+  font-size: clamp(28px, 5vw, 40px);
   margin-top: 12px;
 }
 
 .dash-greeting h1 em {
-  font-style: italic;
+  font-style: normal;
   font-weight: 400;
 }
 
 .dash-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  border-top: 1.5px solid var(--rule);
-  border-bottom: 1.5px solid var(--rule);
+  border-top: 2px solid var(--rule);
+  border-bottom: 2px solid var(--rule);
   margin-bottom: 40px;
 }
 
@@ -387,16 +411,16 @@ body {
 }
 
 .stat .stat-value {
-  font-family: var(--sans);
-  font-weight: 800;
-  font-size: 34px;
+  font-family: var(--ui-mono);
+  font-weight: 500;
+  font-size: 32px;
   line-height: 1.1;
 }
 
 .stat .stat-label {
-  font-family: var(--sans);
+  font-family: var(--ui-sans);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   margin-top: 6px;
@@ -412,43 +436,51 @@ body {
 }
 
 .dash-section-head h2 {
-  font-family: var(--serif);
-  font-weight: 500;
-  font-size: 26px;
+  font-family: var(--ui-sans);
+  font-weight: 600;
+  font-size: 22px;
+}
+
+.dash .btn {
+  font-family: var(--ui-sans);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  padding: 9px 18px;
 }
 
 .events-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 15px;
+  font-size: 14px;
 }
 
 .events-table th {
-  font-family: var(--sans);
+  font-family: var(--ui-sans);
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   text-align: left;
   padding: 10px 12px;
-  border-top: 1.5px solid var(--rule);
-  border-bottom: 1.5px solid var(--rule);
+  border-top: 2px solid var(--rule);
+  border-bottom: 2px solid var(--rule);
 }
 
 .events-table td {
   padding: 10px 12px;
   border-bottom: 1px solid var(--rule-faint);
-  font-family: var(--serif);
+  font-family: var(--ui-sans);
 }
 
 .events-table td.mono {
-  font-family: var(--sans);
+  font-family: var(--ui-mono);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .dash-empty {
-  font-style: italic;
   color: var(--ink-soft);
   text-align: center;
   padding: 40px 0;
@@ -456,8 +488,9 @@ body {
 
 .dash-offline {
   border: 1.5px solid var(--error);
+  border-radius: 8px;
   color: var(--error);
-  font-style: italic;
+  font-weight: 500;
   text-align: center;
   padding: 18px;
   margin-bottom: 24px;
