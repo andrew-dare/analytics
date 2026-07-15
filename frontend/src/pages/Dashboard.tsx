@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../lib/AuthContext';
 import Sidebar from '../components/Sidebar';
+import AppTopbar from '../components/AppTopbar';
 import {
   gql,
   RECENT_EVENTS_QUERY,
@@ -15,6 +16,7 @@ export default function Dashboard() {
   const [events, setEvents] = useState<AnalyticsEvent[]>([]);
   const [offline, setOffline] = useState(false);
   const [sending, setSending] = useState(false);
+  const [search, setSearch] = useState('');
 
   const load = useCallback(async () => {
     try {
@@ -55,10 +57,18 @@ export default function Dashboard() {
   const services = new Set(events.map((e) => e.service));
   const lastEvent = events[0];
 
+  const query = search.trim().toLowerCase();
+  const filteredEvents = query
+    ? events.filter(
+        (e) => e.service.toLowerCase().includes(query) || e.eventType.toLowerCase().includes(query),
+      )
+    : events;
+
   return (
     <div className="app-shell">
       <Sidebar />
       <main className="app-main">
+        <AppTopbar search={search} onSearchChange={setSearch} />
         <div className="dash">
           <section className="dash-greeting">
             <p className="kicker">you are signed in</p>
@@ -103,9 +113,11 @@ export default function Dashboard() {
             </button>
           </div>
 
-          {events.length === 0 && !offline ? (
+          {filteredEvents.length === 0 && !offline ? (
             <p className="dash-empty">
-              No events yet — emit a test event, or point a service at the trackEvent mutation.
+              {events.length === 0
+                ? 'No events yet — emit a test event, or point a service at the trackEvent mutation.'
+                : `No events match "${search}".`}
             </p>
           ) : (
             <table className="events-table">
@@ -118,7 +130,7 @@ export default function Dashboard() {
                 </tr>
               </thead>
               <tbody>
-                {events.map((event) => (
+                {filteredEvents.map((event) => (
                   <tr key={event.id}>
                     <td className="mono">{event.service}</td>
                     <td className="mono">{event.eventType}</td>

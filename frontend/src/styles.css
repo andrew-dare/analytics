@@ -529,49 +529,164 @@ body {
   color: var(--ink);
 }
 
+/* Below 720px the sidebar disappears entirely — the app top bar (see
+   .app-topbar-brand below) becomes the only chrome: wordmark + avatar. */
 @media (max-width: 720px) {
   .app-shell {
     flex-direction: column;
   }
 
   .sidebar {
-    width: 100%;
-    height: auto;
-    position: static;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px 20px;
-  }
-
-  .sidebar-brand {
-    margin-bottom: 0;
-  }
-
-  .sidebar-kicker {
     display: none;
-  }
-
-  .sidebar-nav {
-    flex-direction: row;
-  }
-
-  .sidebar-footer {
-    border-top: none;
-    padding-top: 0;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-
-  .sidebar-user {
-    margin-bottom: 0;
   }
 }
 
 .app-main {
   flex: 1;
   min-width: 0;
+}
+
+/* ---------- app top bar (search + account chrome) ---------- */
+
+.app-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 32px;
+  border-bottom: 2px solid var(--rule);
+  background: var(--paper);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+/* Mobile-only brand mark — the sidebar (which normally carries the brand)
+   disappears below 720px, so the top bar shows this instead. */
+.app-topbar-brand {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--serif);
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.app-topbar-brand-logo {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--ink);
+  display: inline-block;
+}
+
+.app-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  color: var(--ink-faint);
+  width: min(320px, 100%);
+}
+
+.app-search-wrap svg {
+  position: absolute;
+  left: 11px;
+  width: 15px;
+  height: 15px;
+  pointer-events: none;
+}
+
+.app-search {
+  width: 100%;
+  font-family: var(--ui-sans);
+  font-size: 14px;
+  padding: 8px 12px 8px 34px;
+  border: 1.5px solid var(--ink);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink);
+  outline: none;
+}
+
+.app-search::placeholder {
+  color: var(--ink-faint);
+}
+
+.app-search:focus {
+  background: var(--paper-deep);
+}
+
+.app-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.icon-btn {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  transition: border-color 120ms ease;
+}
+
+.icon-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.icon-btn:hover {
+  border-color: var(--ink);
+}
+
+.app-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--paper);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--ui-sans);
+  font-weight: 700;
+  font-size: 13px;
+  margin-left: 4px;
+}
+
+/* Below 720px: a single row — wordmark (replacing the sidebar brand, which
+   disappears at the same breakpoint), search filling the space between,
+   then the avatar. Notification/settings icons drop out. */
+@media (max-width: 720px) {
+  .app-topbar {
+    padding: 12px 16px;
+    gap: 12px;
+  }
+
+  .app-topbar-brand {
+    display: flex;
+    flex-shrink: 0;
+  }
+
+  .app-topbar-actions .icon-btn {
+    display: none;
+  }
+
+  .app-search-wrap {
+    flex: 1 1 auto;
+    width: auto;
+    min-width: 0;
+  }
 }
 
 /* ---------- dashboard (DM Sans / DM Mono) ---------- */
