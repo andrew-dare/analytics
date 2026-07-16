@@ -157,6 +157,44 @@ DATABASE_URL=postgres://analytics:analytics@localhost:5432/analytics \
 yarn dev
 ```
 
+## Testing
+
+Both projects use [Vitest](https://vitest.dev). Test files live next to the
+code as `*.test.ts` / `*.test.tsx`.
+
+```bash
+cd frontend   # or backend
+yarn test           # run once
+yarn test:watch     # watch mode
+yarn test:coverage  # run with coverage + enforce thresholds
+```
+
+- **Frontend** — jsdom environment with
+  [Testing Library](https://testing-library.com) (`@testing-library/react`,
+  `user-event`) and `jest-dom` matchers, wired up in `src/test/setup.ts`.
+- **Backend** — Node environment; unit tests for the pure modules.
+- Test files import `describe`/`it`/`expect`/`vi` explicitly from `vitest`
+  (no ambient globals).
+
+### Coverage
+
+`yarn test:coverage` enforces **100%** on lines, functions, branches, and
+statements (v8 provider). CI runs this on every PR. Two bootstrap files are
+excluded from coverage because they wire everything together and are
+exercised by the running app rather than unit tests:
+
+- `frontend/src/main.tsx` — React render entry
+- `backend/src/index.ts` — server composition root (Kafka + Postgres +
+  Apollo + WebSockets)
+
+### CI
+
+`.github/workflows/ci.yml` runs on every pull request. A path filter detects
+whether `frontend/` and/or `backend/` changed and runs only the affected
+suite(s); an aggregating `CI` job provides a single status to require in
+branch protection (it passes when no suite failed — an untouched, skipped
+suite doesn't block the merge).
+
 ## Project layout
 
 ```
@@ -170,9 +208,20 @@ backend/
     metrics.ts    # prom-client registry and all custom metrics
     pubsub.ts     # in-process pubsub for subscriptions
     types.ts      # shared event types
+  vitest.config.ts
+frontend/
+  src/
+    pages/        # Home, Login, Dashboard
+    components/   # NavBar, Sidebar, AppTopbar, ProtectedRoute
+    lib/          # AuthContext, GraphQL api client
+    test/setup.ts # jest-dom matchers + RTL cleanup
+  vite.config.ts  # Vite build + Vitest config
 monitoring/
   prometheus/     # scrape config
   grafana/        # provisioned datasource + dashboard
+.github/
+  workflows/
+    ci.yml        # path-filtered test suites, 100% coverage gate
 docker-compose.yml
 TODO.md           # roadmap: SDK design, consent/GDPR readiness, telemetry
 ```
