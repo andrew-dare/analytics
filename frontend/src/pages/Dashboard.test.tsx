@@ -4,19 +4,30 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import Dashboard from './Dashboard';
 import { useAuth } from '../lib/AuthContext';
-import { gql, RECENT_EVENTS_QUERY, TRACK_EVENT_MUTATION } from '../lib/api';
+import { gql, RECENT_EVENTS_QUERY, TRACK_EVENT_MUTATION, subscribeToEvents } from '../lib/api';
 import type { AnalyticsEvent } from '../lib/api';
 
 vi.mock('../lib/AuthContext', () => ({
   useAuth: vi.fn(),
 }));
 
+// The real api.ts imports graphql-ws at module scope. graphql-ws's root
+// export barrel-exports both its client AND server code, and under
+// Vitest's module resolution that resolves to the server half, which
+// needs the `graphql` package — not a frontend dependency. Mocking it here
+// avoids that (api.ts is still imported via importOriginal below for its
+// real query/mutation/subscription constants).
+vi.mock('graphql-ws', () => ({
+  createClient: vi.fn(() => ({ subscribe: vi.fn() })),
+}));
+
 vi.mock('../lib/api', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../lib/api')>();
-  return { ...actual, gql: vi.fn() };
+  return { ...actual, gql: vi.fn(), subscribeToEvents: vi.fn() };
 });
 
 const mockGql = vi.mocked(gql);
+const mockSubscribeToEvents = vi.mocked(subscribeToEvents);
 
 const EVENTS: AnalyticsEvent[] = [
   {
@@ -44,6 +55,9 @@ function renderDashboard() {
 }
 
 describe('Dashboard', () => {
+  let unsubscribeSpy: ReturnType<typeof vi.fn<() => void>>;
+  let pushEvent: (event: AnalyticsEvent) => void;
+
   beforeEach(() => {
     vi.mocked(useAuth).mockReturnValue({
       user: { email: 'andrew@dare.dev' },
@@ -51,12 +65,18 @@ describe('Dashboard', () => {
       signIn: vi.fn(),
       signOut: vi.fn(),
     });
+    unsubscribeSpy = vi.fn<() => void>();
+    mockSubscribeToEvents.mockImplementation((onEvent) => {
+      pushEvent = onEvent;
+      return unsubscribeSpy;
+    });
     vi.useFakeTimers({ shouldAdvanceTime: true });
   });
 
   afterEach(() => {
     vi.useRealTimers();
     mockGql.mockReset();
+    mockSubscribeToEvents.mockReset();
   });
 
   it('shows the empty state before any events load, then renders stats once loaded', async () => {
@@ -101,7 +121,7 @@ describe('Dashboard', () => {
 
     mockGql.mockResolvedValueOnce({ recentEvents: EVENTS });
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(5000);
+      await vi.advanceTimersByTimeAsync(30000);
     });
 
     expect(
@@ -109,7 +129,7 @@ describe('Dashboard', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('polls again after POLL_MS and stops polling after unmount', async () => {
+  it('polls again after the reconciliation interval and stops polling after unmount', async () => {
     mockGql.mockResolvedValue({ recentEvents: [] });
     const { unmount } = renderDashboard();
 
@@ -119,14 +139,14 @@ describe('Dashboard', () => {
     expect(mockGql).toHaveBeenCalledTimes(1);
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(5000);
+      await vi.advanceTimersByTimeAsync(30000);
     });
     expect(mockGql).toHaveBeenCalledTimes(2);
 
     unmount();
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(10000);
+      await vi.advanceTimersByTimeAsync(60000);
     });
     expect(mockGql).toHaveBeenCalledTimes(2);
   });
@@ -159,11 +179,10 @@ describe('Dashboard', () => {
     expect(await screen.findByText('No events match "zzz_nothing".')).toBeInTheDocument();
   });
 
-  it('sends a test event, disables the button while sending, and re-polls after 800ms', async () => {
+  it('sends a test event and disables the button while sending', async () => {
     mockGql.mockResolvedValue({ recentEvents: [] });
-    const user = userEvent.setup({
-      advanceTimers: (ms) => vi.advanceTimersByTime(ms),
-    });
+    vi.useRealTimers();
+    const user = userEvent.setup();
     renderDashboard();
 
     await screen.findByText(
@@ -194,21 +213,53 @@ describe('Dashboard', () => {
       }),
     );
 
-    mockGql.mockResolvedValueOnce({ recentEvents: EVENTS });
-    await act(async () => {
-      resolveMutation();
-      // Let the mutation's promise resolution flush before advancing past
-      // the follow-up setTimeout(load, 800) it schedules.
-      await Promise.resolve();
+    resolveMutation();
+
+    expect(await screen.findByRole('button', { name: 'Emit test event' })).not.toBeDisabled();
+  });
+
+  it('subscribes on mount and unsubscribes on unmount', async () => {
+    mockGql.mockResolvedValue({ recentEvents: [] });
+    const { unmount } = renderDashboard();
+
+    await screen.findByText(
+      'No events yet — emit a test event, or point a service at the trackEvent mutation.',
+    );
+    expect(mockSubscribeToEvents).toHaveBeenCalledOnce();
+    expect(unsubscribeSpy).not.toHaveBeenCalled();
+
+    unmount();
+
+    expect(unsubscribeSpy).toHaveBeenCalledOnce();
+  });
+
+  it('prepends a live-pushed event without waiting for the reconciliation poll', async () => {
+    mockGql.mockResolvedValue({ recentEvents: [EVENTS[1]] });
+    renderDashboard();
+
+    await screen.findByText('auth');
+
+    act(() => {
+      pushEvent(EVENTS[0]);
     });
 
-    expect(screen.getByRole('button', { name: 'Emit test event' })).not.toBeDisabled();
+    const rows = screen.getAllByRole('row');
+    expect(rows).toHaveLength(3); // header + 2 events
+    // Pushed event is prepended, so it appears before the pre-existing one.
+    expect(rows[1]).toHaveTextContent('checkout');
+    expect(rows[2]).toHaveTextContent('auth');
+  });
 
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(800);
+  it('deduplicates a pushed event that already exists in state', async () => {
+    mockGql.mockResolvedValue({ recentEvents: EVENTS });
+    renderDashboard();
+
+    await screen.findByText('checkout');
+
+    act(() => {
+      pushEvent(EVENTS[0]);
     });
 
-    expect(mockGql).toHaveBeenCalledWith(RECENT_EVENTS_QUERY, { limit: 20 });
-    expect(await screen.findByText('checkout')).toBeInTheDocument();
+    expect(screen.getAllByRole('row')).toHaveLength(3); // unchanged: header + 2
   });
 });

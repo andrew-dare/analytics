@@ -7,6 +7,16 @@ import App from './App';
 // the page/component tests which mock useAuth for isolation. This exercises
 // the actual routing + auth-gate composition end to end.
 
+// App statically imports Dashboard, which imports graphql-ws at module
+// scope. graphql-ws's root export barrel-exports both its client AND server
+// code, and under Vitest's module resolution that resolves to the server
+// half, which needs the `graphql` package — not a frontend dependency. None
+// of these tests render an authenticated Dashboard (so the client is never
+// actually used), but the module still has to import cleanly.
+vi.mock('graphql-ws', () => ({
+  createClient: vi.fn(() => ({ subscribe: vi.fn() })),
+}));
+
 describe('App', () => {
   beforeEach(() => {
     localStorage.clear();

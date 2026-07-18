@@ -1,5 +1,23 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { gql, RECENT_EVENTS_QUERY, TRACK_EVENT_MUTATION } from './api';
+import type { Sink } from 'graphql-ws';
+
+const { mockSubscribe, mockCreateClient } = vi.hoisted(() => {
+  const mockSubscribe = vi.fn();
+  return { mockSubscribe, mockCreateClient: vi.fn(() => ({ subscribe: mockSubscribe })) };
+});
+
+vi.mock('graphql-ws', () => ({
+  createClient: mockCreateClient,
+}));
+
+import {
+  gql,
+  RECENT_EVENTS_QUERY,
+  TRACK_EVENT_MUTATION,
+  EVENT_TRACKED_SUBSCRIPTION,
+  subscribeToEvents,
+  type AnalyticsEvent,
+} from './api';
 
 describe('gql', () => {
   beforeEach(() => {
@@ -80,9 +98,10 @@ describe('API_URL', () => {
     await freshGql('query {}');
 
     expect(fetch).toHaveBeenCalledWith('http://localhost:4000/graphql', expect.anything());
+    expect(mockCreateClient).toHaveBeenLastCalledWith({ url: 'ws://localhost:4000/graphql' });
   });
 
-  it('uses VITE_API_URL when set', async () => {
+  it('uses VITE_API_URL when set, deriving a matching wss:// URL', async () => {
     vi.stubEnv('VITE_API_URL', 'https://example.com/graphql');
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
@@ -95,5 +114,86 @@ describe('API_URL', () => {
     await freshGql('query {}');
 
     expect(fetch).toHaveBeenCalledWith('https://example.com/graphql', expect.anything());
+    expect(mockCreateClient).toHaveBeenLastCalledWith({ url: 'wss://example.com/graphql' });
+  });
+});
+
+describe('subscribeToEvents', () => {
+  const EVENT: AnalyticsEvent = {
+    id: '1',
+    service: 'checkout',
+    eventType: 'order_placed',
+    payload: null,
+    timestamp: '2026-01-01T00:00:00.000Z',
+  };
+
+  beforeEach(() => {
+    mockSubscribe.mockReset();
+  });
+
+  it('subscribes with the eventTracked query and forwards pushed events', () => {
+    const unsubscribeFn = vi.fn();
+    let sink!: Sink<{ data?: { eventTracked?: AnalyticsEvent } }>;
+    mockSubscribe.mockImplementation((_payload, s) => {
+      sink = s;
+      return unsubscribeFn;
+    });
+    const onEvent = vi.fn();
+
+    const unsubscribe = subscribeToEvents(onEvent);
+
+    expect(mockSubscribe).toHaveBeenCalledWith(
+      { query: EVENT_TRACKED_SUBSCRIPTION },
+      expect.objectContaining({
+        next: expect.any(Function),
+        error: expect.any(Function),
+        complete: expect.any(Function),
+      }),
+    );
+    expect(unsubscribe).toBe(unsubscribeFn);
+
+    sink.next({ data: { eventTracked: EVENT } });
+    expect(onEvent).toHaveBeenCalledWith(EVENT);
+  });
+
+  it('does not call onEvent when a pushed message has no eventTracked data', () => {
+    let sink!: Sink<{ data?: { eventTracked?: AnalyticsEvent } }>;
+    mockSubscribe.mockImplementation((_payload, s) => {
+      sink = s;
+      return vi.fn();
+    });
+    const onEvent = vi.fn();
+
+    subscribeToEvents(onEvent);
+    sink.next({ data: undefined });
+
+    expect(onEvent).not.toHaveBeenCalled();
+  });
+
+  it('logs subscription errors instead of throwing', () => {
+    let sink!: Sink<{ data?: { eventTracked?: AnalyticsEvent } }>;
+    mockSubscribe.mockImplementation((_payload, s) => {
+      sink = s;
+      return vi.fn();
+    });
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    subscribeToEvents(vi.fn());
+    expect(() => sink.error(new Error('ws down'))).not.toThrow();
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith('Event subscription error:', expect.any(Error));
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('has a no-op complete handler', () => {
+    let sink!: Sink<{ data?: { eventTracked?: AnalyticsEvent } }>;
+    mockSubscribe.mockImplementation((_payload, s) => {
+      sink = s;
+      return vi.fn();
+    });
+
+    subscribeToEvents(vi.fn());
+
+    expect(() => sink.complete()).not.toThrow();
   });
 });

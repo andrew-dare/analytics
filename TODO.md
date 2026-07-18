@@ -82,6 +82,14 @@ workstream; rough order within each group is "do first → do later."
       worker container (independent scaling, deploys don't pause ingestion)
 - [ ] Add a dead-letter topic (`analytics-events-dlq`) for unparseable /
       uninsertable events instead of skip-and-log
+- [ ] Swap the in-memory `graphql-subscriptions` `PubSub` for a Redis-backed
+      one (`graphql-redis-subscriptions`) before running more than one API
+      replica or splitting the consumer into its own process — the frontend
+      now actually depends on `eventTracked` for live updates (see README
+      "The dashboard is push, not poll"), and in-memory pubsub only
+      broadcasts within the process that received the Kafka batch. A single
+      instance is fine today; this becomes a real gap the moment that
+      changes.
 
 ## 6. Telemetry / observability
 

@@ -117,6 +117,15 @@ partition, replication factor 1 — fine for local dev, not production).
 **Unparseable messages** are counted and skipped (a proper dead-letter
 topic is on the roadmap).
 
+**The dashboard is push, not poll — with a reconciliation fallback.** The
+frontend subscribes to `eventTracked` over `graphql-ws` and prepends new
+events live as Kafka processing completes. It also re-queries `recentEvents`
+every 30s in the background: the in-memory `PubSub` behind the subscription
+has no replay buffer, so any events published while a client is
+disconnected are simply missed, and the periodic re-query re-syncs from
+Postgres to correct for that drift rather than trusting the socket as the
+sole source of truth.
+
 ## Observability
 
 Backend instrumentation ([backend/src/metrics.ts](backend/src/metrics.ts)):

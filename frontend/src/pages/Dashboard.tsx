@@ -6,10 +6,18 @@ import {
   gql,
   RECENT_EVENTS_QUERY,
   TRACK_EVENT_MUTATION,
+  subscribeToEvents,
   type AnalyticsEvent,
 } from '../lib/api';
 
-const POLL_MS = 5000;
+// New events arrive live over the eventTracked WebSocket subscription; this
+// interval is a fallback reconciliation poll only. The in-memory pubsub
+// behind the subscription has no replay buffer, so any events published
+// while disconnected are simply missed — this poll re-syncs from Postgres
+// periodically to correct for that, rather than being the primary update
+// mechanism.
+const RECONCILE_MS = 30000;
+const MAX_EVENTS = 20;
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -21,7 +29,7 @@ export default function Dashboard() {
   const load = useCallback(async () => {
     try {
       const data = await gql<{ recentEvents: AnalyticsEvent[] }>(RECENT_EVENTS_QUERY, {
-        limit: 20,
+        limit: MAX_EVENTS,
       });
       setEvents(data.recentEvents);
       setOffline(false);
@@ -30,12 +38,25 @@ export default function Dashboard() {
     }
   }, []);
 
-  // explain how this works
+  // Initial load, then a slow reconciliation poll — see RECONCILE_MS above.
   useEffect(() => {
     void load();
-    const timer = setInterval(() => void load(), POLL_MS);
+    const timer = setInterval(() => void load(), RECONCILE_MS);
     return () => clearInterval(timer);
   }, [load]);
+
+  // Live updates: prepend newly tracked events as they're pushed over the
+  // subscription, deduping against anything already in state (the same
+  // event can otherwise arrive twice — once from the reconciliation poll,
+  // once pushed live).
+  useEffect(() => {
+    return subscribeToEvents((event) => {
+      setEvents((prev) => {
+        if (prev.some((e) => e.id === event.id)) return prev;
+        return [event, ...prev].slice(0, MAX_EVENTS);
+      });
+    });
+  }, []);
 
   const sendTestEvent = async () => {
     setSending(true);
@@ -47,8 +68,8 @@ export default function Dashboard() {
           payload: JSON.stringify({ sentBy: user?.email }),
         },
       });
-      // Small delay so the consumer has a chance to persist before we re-poll.
-      setTimeout(() => void load(), 800);
+      // The new event arrives live via the eventTracked subscription once
+      // Kafka processing completes — no need to guess a re-poll delay.
     } finally {
       setSending(false);
     }
