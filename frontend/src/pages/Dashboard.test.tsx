@@ -48,7 +48,7 @@ describe('Dashboard', () => {
     vi.mocked(useAuth).mockReturnValue({
       user: { email: 'andrew@dare.dev' },
       isAuthenticated: true,
-      signIn: vi.fn(),
+      isLoaded: true,
       signOut: vi.fn(),
     });
     vi.useFakeTimers({ shouldAdvanceTime: true });

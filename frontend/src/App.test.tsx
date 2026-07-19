@@ -1,21 +1,53 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useAuth, useUser } from '@clerk/react';
+import { useSignIn, useSignUp } from '@clerk/react/legacy';
 import App from './App';
 
-// Uses the real AuthProvider + BrowserRouter (App.tsx wires both), unlike
-// the page/component tests which mock useAuth for isolation. This exercises
-// the actual routing + auth-gate composition end to end.
+// Real BrowserRouter (App.tsx wires it) exercising actual routing + the
+// auth-gate composition end to end, unlike the page/component tests which
+// mock our own useAuth for isolation. Clerk's own hooks are mocked here
+// (App.tsx no longer hosts ClerkProvider — that lives in main.tsx — so
+// there's no real provider ancestor in this render tree either way).
+
+vi.mock('@clerk/react', () => ({
+  useAuth: vi.fn(),
+  useUser: vi.fn(),
+}));
+
+vi.mock('@clerk/react/legacy', () => ({
+  useSignIn: vi.fn(),
+  useSignUp: vi.fn(),
+}));
 
 describe('App', () => {
   beforeEach(() => {
-    localStorage.clear();
     window.history.pushState({}, '', '/');
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: async () => ({ data: { recentEvents: [] } }),
-    } as Response));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ data: { recentEvents: [] } }),
+      } as Response),
+    );
+    vi.mocked(useAuth).mockReturnValue({
+      isLoaded: true,
+      isSignedIn: false,
+      signOut: vi.fn(),
+    } as unknown as ReturnType<typeof useAuth>);
+    vi.mocked(useUser).mockReturnValue({ user: null } as unknown as ReturnType<typeof useUser>);
+    vi.mocked(useSignIn).mockReturnValue({
+      isLoaded: true,
+      signIn: { create: vi.fn() },
+      setActive: vi.fn(),
+    } as unknown as ReturnType<typeof useSignIn>);
+    vi.mocked(useSignUp).mockReturnValue({
+      isLoaded: true,
+      signUp: { create: vi.fn(), prepareEmailAddressVerification: vi.fn() },
+      setActive: vi.fn(),
+    } as unknown as ReturnType<typeof useSignUp>);
   });
 
   afterEach(() => {

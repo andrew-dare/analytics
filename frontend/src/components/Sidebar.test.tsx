@@ -15,7 +15,7 @@ describe('Sidebar', () => {
     vi.mocked(useAuth).mockReturnValue({
       user: { email: 'andrew@dare.dev' },
       isAuthenticated: true,
-      signIn: vi.fn(),
+      isLoaded: true,
       signOut,
     });
     const user = userEvent.setup();
@@ -41,7 +41,7 @@ describe('Sidebar', () => {
     vi.mocked(useAuth).mockReturnValue({
       user: null,
       isAuthenticated: false,
-      signIn: vi.fn(),
+      isLoaded: true,
       signOut: vi.fn(),
     });
 

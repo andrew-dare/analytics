@@ -117,6 +117,29 @@ workstream; rough order within each group is "do first → do later."
       explicit unbundled opt-in (unticked by default) for anything beyond
       functional analytics (marketing, profiling, third-party sharing)
 
+## 8. Auth — backend half (frontend Clerk integration landed; this didn't)
+
+- [ ] Verify Clerk session tokens on the GraphQL HTTP path: Clerk middleware
+      (`@clerk/express` or `@clerk/backend`'s `verifyToken`) ahead of
+      `expressMiddleware(server, { context })`, threading `userId` into the
+      resolver context — `index.ts` currently passes no context at all
+- [ ] Verify tokens on the WS/subscription path too: `useServer({ schema,
+      context, onConnect })` needs its own verification since
+      `connectionParams` isn't a normal header
+- [ ] Attach the session token in `frontend/src/lib/api.ts` — `gql()` needs
+      `Authorization: Bearer <token>` (via Clerk's `getToken()`),
+      `subscribeToEvents()` needs it in `connectionParams`
+- [ ] Add a local `users` table (Clerk is the identity source of truth, but
+      app data still wants a local row to join against) — `id` = Clerk user
+      ID, `email`, `created_at`, matching `db.ts`'s existing table pattern
+- [ ] Sync that table via a Clerk webhook (`user.created` / `user.updated` /
+      `user.deleted`) hitting a new Express route, verified with the webhook
+      signing secret — not the app's own signup form, since Clerk owns
+      identity
+- [ ] Once a `users` table exists, consider scoping `events` by `user_id`
+      (adds a column + resolver filtering) — not required for the above,
+      but the natural next step
+
 ## Consent cheat-sheet (reference, not tasks)
 
 | Scenario | Banner/consent needed? |

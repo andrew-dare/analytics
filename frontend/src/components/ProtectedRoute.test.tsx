@@ -31,7 +31,7 @@ describe('ProtectedRoute', () => {
     vi.mocked(useAuth).mockReturnValue({
       user: { email: 'a@b.com' },
       isAuthenticated: true,
-      signIn: vi.fn(),
+      isLoaded: true,
       signOut: vi.fn(),
     });
 
@@ -44,13 +44,27 @@ describe('ProtectedRoute', () => {
     vi.mocked(useAuth).mockReturnValue({
       user: null,
       isAuthenticated: false,
-      signIn: vi.fn(),
+      isLoaded: true,
       signOut: vi.fn(),
     });
 
     renderAt('/protected');
 
     expect(screen.getByText('login page')).toBeInTheDocument();
+    expect(screen.queryByText('secret content')).not.toBeInTheDocument();
+  });
+
+  it('renders nothing while Clerk is still loading, instead of redirecting', () => {
+    vi.mocked(useAuth).mockReturnValue({
+      user: null,
+      isAuthenticated: false,
+      isLoaded: false,
+      signOut: vi.fn(),
+    });
+
+    renderAt('/protected');
+
+    expect(screen.queryByText('login page')).not.toBeInTheDocument();
     expect(screen.queryByText('secret content')).not.toBeInTheDocument();
   });
 });

@@ -1,91 +1,89 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { AuthProvider, useAuth } from './AuthContext';
+import { describe, it, expect, vi } from 'vitest';
+import { renderHook } from '@testing-library/react';
+import { useAuth as useClerkAuth, useUser } from '@clerk/react';
+import { useAuth } from './AuthContext';
 
-function Probe() {
-  const { user, isAuthenticated, signIn, signOut } = useAuth();
-  return (
-    <div>
-      <p data-testid="authed">{String(isAuthenticated)}</p>
-      <p data-testid="email">{user?.email ?? 'none'}</p>
-      <button onClick={() => void signIn('a@b.com', 'pw')}>sign in</button>
-      <button onClick={signOut}>sign out</button>
-    </div>
-  );
-}
+vi.mock('@clerk/react', () => ({
+  useAuth: vi.fn(),
+  useUser: vi.fn(),
+}));
 
-function renderProbe() {
-  return render(
-    <AuthProvider>
-      <Probe />
-    </AuthProvider>,
-  );
-}
+type ClerkAuthReturn = ReturnType<typeof useClerkAuth>;
+type ClerkUserReturn = ReturnType<typeof useUser>;
 
-describe('AuthProvider / useAuth', () => {
-  beforeEach(() => {
-    localStorage.clear();
+describe('useAuth adapter', () => {
+  it('is unauthenticated while Clerk is still loading', () => {
+    vi.mocked(useClerkAuth).mockReturnValue({
+      isLoaded: false,
+      isSignedIn: undefined,
+      signOut: vi.fn(),
+    } as unknown as ClerkAuthReturn);
+    vi.mocked(useUser).mockReturnValue({ user: null } as unknown as ClerkUserReturn);
+
+    const { result } = renderHook(() => useAuth());
+
+    expect(result.current.isLoaded).toBe(false);
+    expect(result.current.isAuthenticated).toBe(false);
+    expect(result.current.user).toBeNull();
   });
 
-  it('starts unauthenticated when nothing is stored', () => {
-    renderProbe();
-    expect(screen.getByTestId('authed')).toHaveTextContent('false');
-    expect(screen.getByTestId('email')).toHaveTextContent('none');
+  it('is unauthenticated once loaded if not signed in', () => {
+    vi.mocked(useClerkAuth).mockReturnValue({
+      isLoaded: true,
+      isSignedIn: false,
+      signOut: vi.fn(),
+    } as unknown as ClerkAuthReturn);
+    vi.mocked(useUser).mockReturnValue({ user: null } as unknown as ClerkUserReturn);
+
+    const { result } = renderHook(() => useAuth());
+
+    expect(result.current.isAuthenticated).toBe(false);
+    expect(result.current.user).toBeNull();
   });
 
-  it('restores a previously stored session on mount', () => {
-    localStorage.setItem(
-      'bupis.auth',
-      JSON.stringify({ token: 't1', user: { email: 'stored@example.com' } }),
-    );
+  it('is authenticated once loaded and signed in, exposing the primary email', () => {
+    vi.mocked(useClerkAuth).mockReturnValue({
+      isLoaded: true,
+      isSignedIn: true,
+      signOut: vi.fn(),
+    } as unknown as ClerkAuthReturn);
+    vi.mocked(useUser).mockReturnValue({
+      user: { primaryEmailAddress: { emailAddress: 'andrew@dare.dev' } },
+    } as unknown as ClerkUserReturn);
 
-    renderProbe();
+    const { result } = renderHook(() => useAuth());
 
-    expect(screen.getByTestId('authed')).toHaveTextContent('true');
-    expect(screen.getByTestId('email')).toHaveTextContent('stored@example.com');
+    expect(result.current.isAuthenticated).toBe(true);
+    expect(result.current.user).toEqual({ email: 'andrew@dare.dev' });
   });
 
-  it('treats corrupted stored auth as unauthenticated', () => {
-    localStorage.setItem('bupis.auth', '{not valid json');
+  it('has a null user when signed in but Clerk has no primary email yet', () => {
+    vi.mocked(useClerkAuth).mockReturnValue({
+      isLoaded: true,
+      isSignedIn: true,
+      signOut: vi.fn(),
+    } as unknown as ClerkAuthReturn);
+    vi.mocked(useUser).mockReturnValue({
+      user: { primaryEmailAddress: null },
+    } as unknown as ClerkUserReturn);
 
-    renderProbe();
+    const { result } = renderHook(() => useAuth());
 
-    expect(screen.getByTestId('authed')).toHaveTextContent('false');
+    expect(result.current.user).toBeNull();
   });
 
-  it('signIn persists a session and updates state', async () => {
-    const user = userEvent.setup();
-    renderProbe();
+  it('signOut delegates to Clerk', async () => {
+    const clerkSignOut = vi.fn().mockResolvedValue(undefined);
+    vi.mocked(useClerkAuth).mockReturnValue({
+      isLoaded: true,
+      isSignedIn: true,
+      signOut: clerkSignOut,
+    } as unknown as ClerkAuthReturn);
+    vi.mocked(useUser).mockReturnValue({ user: null } as unknown as ClerkUserReturn);
 
-    await user.click(screen.getByText('sign in'));
+    const { result } = renderHook(() => useAuth());
+    await result.current.signOut();
 
-    await waitFor(() => expect(screen.getByTestId('authed')).toHaveTextContent('true'));
-    expect(screen.getByTestId('email')).toHaveTextContent('a@b.com');
-
-    const stored = JSON.parse(localStorage.getItem('bupis.auth')!);
-    expect(stored.user).toEqual({ email: 'a@b.com' });
-    expect(typeof stored.token).toBe('string');
-  });
-
-  it('signOut clears the session', async () => {
-    localStorage.setItem(
-      'bupis.auth',
-      JSON.stringify({ token: 't1', user: { email: 'stored@example.com' } }),
-    );
-    const user = userEvent.setup();
-    renderProbe();
-    expect(screen.getByTestId('authed')).toHaveTextContent('true');
-
-    await user.click(screen.getByText('sign out'));
-
-    expect(screen.getByTestId('authed')).toHaveTextContent('false');
-    expect(localStorage.getItem('bupis.auth')).toBeNull();
-  });
-
-  it('throws when useAuth is called outside an AuthProvider', () => {
-    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
-    expect(() => render(<Probe />)).toThrow('useAuth must be used inside <AuthProvider>');
-    consoleError.mockRestore();
+    expect(clerkSignOut).toHaveBeenCalledOnce();
   });
 });

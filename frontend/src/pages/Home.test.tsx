@@ -21,7 +21,7 @@ describe('Home', () => {
     vi.mocked(useAuth).mockReturnValue({
       user: null,
       isAuthenticated: false,
-      signIn: vi.fn(),
+      isLoaded: true,
       signOut: vi.fn(),
     });
 
@@ -35,7 +35,7 @@ describe('Home', () => {
     vi.mocked(useAuth).mockReturnValue({
       user: { email: 'a@b.com' },
       isAuthenticated: true,
-      signIn: vi.fn(),
+      isLoaded: true,
       signOut: vi.fn(),
     });
 
@@ -52,7 +52,7 @@ describe('Home', () => {
     vi.mocked(useAuth).mockReturnValue({
       user: null,
       isAuthenticated: false,
-      signIn: vi.fn(),
+      isLoaded: true,
       signOut: vi.fn(),
     });
 

@@ -28,11 +28,24 @@ replayed.
 - **Apollo Server 5** — Express via `@as-integrations/express4`,
   subscriptions via `graphql-ws`; written in **TypeScript** (strict)
 - **kafkajs** producer/consumer, **pg** for Postgres, **prom-client** for metrics
+- **Clerk** (`@clerk/react`) — authentication; custom UI (not the prebuilt
+  `<SignIn/>`), so sign-in/sign-up run through the poster-styled form
 - **Prometheus + Grafana + kafka-exporter** for telemetry,
   **Redpanda Console** and **pgweb** as data GUIs
 - **yarn** as the package manager
 
 ## Run it
+
+Frontend auth needs a Clerk app first (free at [clerk.com](https://clerk.com)):
+
+```bash
+cd frontend
+cp .env.example .env
+# then set VITE_CLERK_PUBLISHABLE_KEY in .env to your app's publishable key
+```
+
+Without this, the frontend renders a "Clerk isn't configured" message instead
+of crashing, but sign-in won't work.
 
 ```bash
 docker compose up --build
@@ -116,6 +129,16 @@ partition, replication factor 1 — fine for local dev, not production).
 
 **Unparseable messages** are counted and skipped (a proper dead-letter
 topic is on the roadmap).
+
+**Auth is Clerk, wrapped behind a thin adapter.** `frontend/src/lib/AuthContext.tsx`
+exposes `{ user, isAuthenticated, isLoaded, signOut }` over Clerk's own
+`useAuth`/`useUser` hooks, so the rest of the app (`Sidebar`, `NavBar`,
+`ProtectedRoute`, ...) doesn't know Clerk exists. Sign-in and sign-up
+themselves bypass that adapter and use Clerk's `useSignIn`/`useSignUp`
+directly in `Login.tsx`, since those are multi-step flows (email
+verification is on by default for sign-up) rather than a single
+`signIn(email, password)` call. `ClerkProvider` lives in `main.tsx`, not
+`App.tsx` — nothing below main needs to know about it either.
 
 ## Observability
 
