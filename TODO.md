@@ -117,6 +117,27 @@ workstream; rough order within each group is "do first → do later."
       explicit unbundled opt-in (unticked by default) for anything beyond
       functional analytics (marketing, profiling, third-party sharing)
 
+## 8. Feature flagging & experimentation
+
+- [ ] Add a **feature flagging service** — evaluate flags in both the
+      frontend (gate UI like the Dashboard search/live-push rollout) and
+      backend (gate resolver behavior); options range from hosted
+      (LaunchDarkly, Statsig, GrowthBook Cloud) to self-hosted (GrowthBook,
+      Unleash, Flagsmith) — self-hosted fits this project's "run everything
+      in docker-compose" ethos better than a hosted-only choice
+- [ ] Add an **experiment service** (A/B testing) — cohort assignment,
+      exposure tracking, statistical significance on results; often the
+      same product as the flag service above (GrowthBook and Statsig both
+      bundle flags + experiments), so evaluate them together rather than
+      picking two separate tools
+- [ ] Route experiment exposure/conversion events through the *existing*
+      event pipeline (`trackEvent` mutation → Kafka → Postgres) instead of
+      a bolted-on system — this project already has the ingest/store/query
+      path an experimentation system needs; a dedicated experiments table
+      or `event_type` convention (e.g. `experiment_exposed`,
+      `experiment_converted`) may be all that's required rather than new
+      infrastructure
+
 ## Consent cheat-sheet (reference, not tasks)
 
 | Scenario | Banner/consent needed? |
